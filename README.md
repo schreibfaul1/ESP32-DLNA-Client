@@ -1,5 +1,5 @@
 # ESP32-DLNA
-This is a lightweight version of <a href="https://github.com/yellobyte/">SoapESP32">SoapESP32</a> of yellobyte's complex library.
+This is a lightweight version of <a href="https://github.com/yellobyte/"> SoapESP32</a>, yellobyte's outstanding and complex library.
 There are only basic functions here that are absolutely necessary for a DLNA client.
 Example:
 ````c++
