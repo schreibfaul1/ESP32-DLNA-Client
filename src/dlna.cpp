@@ -1,0 +1,700 @@
+#include "dlna.h"
+
+/*
+//example
+DLNA dlna;
+
+void setup(){
+    dlna.seekServer(); // send a multicast around the local network
+}
+
+void loop(){
+    dlna.loop();
+}
+
+*/
+
+DLNA::DLNA(){
+    m_state = IDLE;
+    m_chunked = false;
+    if(!psramInit()) {
+        m_chbuf = (char*)malloc(512);
+        m_chbufSize = 512;
+    }
+    else {
+        m_PSRAMfound = true;
+        m_chbuf = (char*)ps_malloc(4096);
+        m_chbufSize = 4096;
+    }
+}
+
+DLNA::~DLNA(){
+    dlnaServer_clear_and_shrink();
+    vector_clear_and_shrink(m_content);
+    if(m_chbuf){free(m_chbuf); m_chbuf = NULL;}
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+bool DLNA::seekServer(){
+    if(WiFi.status() != WL_CONNECTED) return false; // guard
+    dlnaServer_clear_and_shrink();
+    uint8_t ret = 0;
+    const char searchTX[] = "M-SEARCH * HTTP/1.1\r\n"\
+                            "HOST: 239.255.255.250:1900\r\n"\
+                            "MAN: \"ssdp:discover\"\r\n"\
+                            "MX: 3\r\n"\
+                            "ST: urn:schemas-upnp-org:device:MediaServer:1\r\n\r\n";
+
+    ret = m_udp.beginMulticast(IPAddress(SSDP_MULTICAST_IP), SSDP_LOCAL_PORT);
+    if(!ret){
+        m_udp.stop(); log_e("error sending SSDP multicast packets");
+        return false;
+    }
+    ret = m_udp.beginPacket(IPAddress(SSDP_MULTICAST_IP), SSDP_MULTICAST_PORT);
+    if(!ret){
+        log_e("udp beginPacket error");
+        return false;
+    }
+    ret = m_udp.write((const uint8_t*)searchTX, sizeof(searchTX));
+    if(!ret){
+        log_e("udp write error");
+        return false;
+    }
+    ret = m_udp.endPacket();
+    if(!ret){
+        log_e("endPacket error");
+        return false;
+    }
+    m_state = SEEK_SERVER;
+    m_timeStamp = millis();
+    m_timeout = SEEK_TIMEOUT;
+    return true;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+int8_t DLNA::listServer(){
+    if(m_state == SEEK_SERVER) return -1; // seek in progress
+    for(uint8_t i = 0; i < m_dlnaServer.size; i++){
+        if(dlna_server) dlna_server(i, m_dlnaServer.ip[i], m_dlnaServer.port[i], m_dlnaServer.friendlyName[i], m_dlnaServer.controlURL[i]);
+    }
+    return m_dlnaServer.size;
+}
+
+DLNA::dlnaServer_t DLNA::getServer(){
+    return m_dlnaServer;
+}
+
+DLNA::srvContent_t DLNA::getBrowseResult(){
+    return m_srvContent;;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void DLNA::parseDlnaServer(uint16_t len){
+    if(len > m_chbufSize - 1) len = m_chbufSize - 1; // guard
+    char* dummy = strdup("?");
+    memset(m_chbuf, 0, m_chbufSize);
+    vTaskDelay(200);
+    m_udp.read(m_chbuf, len); // read packet into the buffer
+    char* p = strcasestr(m_chbuf, "Location: http");
+    if(!p) return;
+    int idx1 = indexOf(p, "://",  0) + 3;  // pos IP
+    int idx2 = indexOf(p, ":",  idx1);      // pos ':'
+    int idx3 = indexOf(p, "/",  idx2);      // pos '/'
+    int idx4 = indexOf(p, "\r", idx3);      // pos '\r'
+    *(p + idx2) = '\0';
+    *(p + idx3) = '\0';
+    *(p + idx4) = '\0';
+    for(int i = 0; i< m_dlnaServer.size; i++){
+        if(strcmp(m_dlnaServer.ip[i], p + idx1) == 0){log_i("sameIP"); return;}
+    }
+    m_dlnaServer.ip.push_back(x_ps_strdup(p + idx1));
+    m_dlnaServer.port.push_back(atoi(p + idx2 + 1));
+    m_dlnaServer.location.push_back(x_ps_strdup(p + idx3 + 1));
+    m_dlnaServer.controlURL.push_back(dummy);
+    m_dlnaServer.friendlyName.push_back(dummy);
+    m_dlnaServer.presentationPort.push_back(0);
+    m_dlnaServer.presentationURL.push_back(dummy);
+    m_dlnaServer.size++;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+bool DLNA::srvGet(uint8_t srvNr){
+    bool ret;
+    uint8_t cnt = 0;
+    m_client.stop();
+    m_client.setTimeout(4000);
+    ret = m_client.connect(m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
+    if(!ret){
+        m_client.stop();
+        log_e("The server %s:%d is not responding", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
+        return false;
+    }
+    while(true){
+        if(m_client.connected()) break;
+        delay(100);
+        cnt++;
+        if(cnt == 10){
+            log_e("The server %s:%d refuses the connection", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
+            return false;
+        }
+    }
+    // assemble HTTP header
+    sprintf(m_chbuf, "GET /%s HTTP/1.1\r\nHost: %s:%d\r\nConnection: close\r\nUser-Agent: ESP32/Player/UPNP1.0\r\n\r\n",
+                      m_dlnaServer.location[srvNr], m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
+    m_client.print(m_chbuf);
+    cnt = 0;
+    while(true){
+        if(m_client.available()) break;
+        delay(100);
+        cnt++;
+        if(cnt == 10){
+            log_e("The server %s:%d is not responding after request", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
+            return false;
+        }
+    }
+    return true;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+bool DLNA::readHttpHeader(){
+
+    bool ct_seen = false;
+    m_timeStamp  = millis();
+
+    while(true){  // outer while
+        uint16_t pos = 0;
+        if((m_timeStamp + READ_TIMEOUT) < millis()) {
+            if(dlna_info) dlna_info("timeout in readHttpHeader");
+            goto error;
+        }
+        while(m_client.available()) {
+            uint8_t b = m_client.read();
+            if(b == '\n') {
+                if(!pos) {  // empty line received, is the last line of this responseHeader
+                    goto exit;
+                }
+                break;
+            }
+            if(b == '\r') m_chbuf[pos] = 0;
+            if(b < 0x20) continue;
+            m_chbuf[pos] = b;
+            pos++;
+            if(pos == m_chbufSize -1) {
+                pos--;
+                continue;
+            }
+            if(pos == m_chbufSize - 2) {
+                m_chbuf[pos] = '\0';
+                log_i("responseHeaderline overflow, response was: %s", m_chbuf);
+            }
+        } // inner while
+    //    log_w("%s", m_chbuf);
+        int16_t posColon = indexOf(m_chbuf, ":", 0);  // lowercase all letters up to the colon
+        if(posColon >= 0) {
+            for(int i = 0; i < posColon; i++) { m_chbuf[i] = toLowerCase(m_chbuf[i]); }
+        }
+        if(startsWith(m_chbuf, "content-length:")){
+            const char* c_cl = (m_chbuf + 15);
+            int32_t     i_cl = atoi(c_cl);
+            m_contentlength = i_cl;
+        //    log_i("content-length: %lu", (long unsigned int)m_contentlength);
+        }
+        else if(startsWith(m_chbuf, "content-type:")) {  // content-type: text/html; charset=UTF-8
+            int idx = indexOf(m_chbuf + 13, ";", 0);
+            if(idx > 0) m_chbuf[13 + idx] = '\0';
+            if(indexOf(m_chbuf + 13, "text/xml", 0) > 0) ct_seen = true;
+            else if(indexOf(m_chbuf + 13, "text/html", 0) > 0) ct_seen = true;
+            else{
+                log_i("content type expected: text/xml or text/html, got %s", m_chbuf + 13);
+                goto exit; // wrong content type
+            }
+        }
+        else if((startsWith(m_chbuf, "transfer-encoding:"))) {
+            if(endsWith(m_chbuf, "chunked") || endsWith(m_chbuf, "Chunked")) {  // Station provides chunked transfer
+                m_chunked = true;
+            }
+        }
+        else { ; }
+    //    log_w("%s", m_chbuf);
+    } // outer while
+
+exit:
+    if(!m_contentlength) log_e("contentlength is not given");
+    if(!ct_seen) log_e("content type not found");
+    return true;
+
+error:
+    return false;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+bool DLNA::readContent(){
+
+    m_timeStamp  = millis();
+    m_timeout    = 2500; // ms
+    uint32_t idx = 0;
+    uint8_t lastChar = 0;
+    uint8_t b = 0;
+    vector_clear_and_shrink(m_content);
+
+    while(true){  // outer while
+        uint16_t pos = 0;
+        if((m_timeStamp + m_timeout) < millis()) {
+            if(dlna_info) dlna_info("timeout in readContent");
+            goto error;
+        }
+        while(m_client.available()) {
+            if(lastChar){
+                b = lastChar;
+                lastChar = 0;
+            }
+            else{
+                b = m_client.read();
+                idx++;
+            }
+            if(b == '\n') {
+                m_chbuf[pos] = '\0';
+                break;
+            }
+            if(b == '<' &&  m_chbuf[pos - 1] == '>'){
+                lastChar = '<';
+                m_chbuf[pos] = '\0';
+                break; // simulate new line
+            }
+            if(b == ';'){
+                m_chbuf[pos] = '\0';
+                break; // simulate new line
+            }
+            if(b == '\r') m_chbuf[pos] = 0;
+            if(b < 0x20) continue;
+            m_chbuf[pos] = b;
+            pos++;
+            if(pos == m_chbufSize -1) {
+                pos--;
+                continue;
+            }
+            if(pos == m_chbufSize - 2) {
+                m_chbuf[pos] = '\0';
+                log_i("line overflow");
+            }
+        }
+    //    log_i("%s %i", m_chbuf, m_content.size());
+        m_content.push_back(x_ps_strdup(m_chbuf));
+        if(!m_chunked &&  idx == m_contentlength) break;
+        if(!m_client.available()){
+            if(m_chunked == true) break; // ok
+            if(m_contentlength)   break; // ok
+            goto error; // not ok
+        }
+        m_timeStamp  = millis();
+    }
+    return true;
+
+error:
+    return false;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+bool DLNA::getServerItems(uint8_t srvNr){
+    if(m_dlnaServer.size == 0) return 0;  // return if none detected
+
+
+    bool gotFriendlyName = false;
+    bool gotServiceType  = false;
+    bool URNschemaFound  = false;
+
+    for(int i = 0; i < m_content.size(); i++){
+        uint16_t idx = 0;
+        while(*(m_content[i] + idx) == 0x20) idx++;  // same as trim left
+        char* content = m_content[i] + idx;
+        if(!gotFriendlyName) {
+            if(startsWith(content, "<friendlyName>")){
+                uint16_t pos = indexOf(content, "<", 14);
+                *(content + pos) = '\0';
+                if(strlen(content) == 0){
+                    m_dlnaServer.friendlyName[srvNr] = (char*)"Server name not provided";
+                }
+                else{
+                    m_dlnaServer.friendlyName[srvNr] = x_ps_strdup(content + 14);
+                }
+                gotFriendlyName = true;
+            }
+        }
+        if(!gotServiceType) {
+            if(indexOf(content, "urn:schemas-upnp-org:service:ContentDirectory:1", 0) > 0){URNschemaFound = true; continue;}
+            if(URNschemaFound){
+                if(startsWith(content, "<controlURL>")){
+                    uint16_t pos = indexOf(content, "<", 12);
+                    *(content + pos) = '\0';
+                    m_dlnaServer.controlURL[srvNr] = x_ps_strdup(content + 13);
+                    gotServiceType = true;
+                }
+            }
+        }
+        if(startsWith(content, "<presentationURL>")){
+            uint16_t pos = indexOf(content, "<", 17);
+            *(content + pos) = '\0';
+            char* presentationURL = x_ps_strdup(content + 17);
+            if(!startsWith(presentationURL, "http://")) continue;
+            int8_t posColon = (indexOf(presentationURL, ":", 8));
+            if(posColon > 0){ // we have ip and port
+                presentationURL[posColon] = '\0';
+                free(m_dlnaServer.ip[srvNr]);
+                m_dlnaServer.presentationURL[srvNr] = x_ps_strdup(presentationURL + 7); // add presentationURL(IP)
+                m_dlnaServer.presentationPort[srvNr] = atoi(presentationURL + posColon + 1);
+            } // only ip is given
+            else{
+                free(m_dlnaServer.ip[srvNr]);
+                m_dlnaServer.presentationURL[srvNr] = x_ps_strdup(presentationURL + 7);
+            }
+            if(presentationURL){free(presentationURL); presentationURL = NULL;}
+        }
+    }
+
+    // we finally got all infos we need
+    uint16_t idx = 0;
+    if(m_dlnaServer.location[srvNr] && endsWith(m_dlnaServer.location[srvNr], "/")){
+        char* tmp = (char*)malloc(strlen(m_dlnaServer.location[srvNr]) + strlen(m_dlnaServer.controlURL[srvNr]) + 1);
+        strcpy(tmp, m_dlnaServer.location[srvNr]); // location string becomes first part of controlURL
+        strcat(tmp, m_dlnaServer.controlURL[srvNr]);
+        free(m_dlnaServer.controlURL[srvNr]);
+        m_dlnaServer.controlURL[srvNr] = tmp;
+        free(tmp);
+    }
+    if(m_dlnaServer.controlURL[srvNr] && startsWith(m_dlnaServer.controlURL[srvNr], "http://")) { // remove "http://ip:port/" from begin of string
+        idx = indexOf(m_dlnaServer.controlURL[srvNr], "/", 7);
+        memcpy(m_dlnaServer.controlURL[srvNr], m_dlnaServer.controlURL[srvNr] + idx + 1, strlen(m_dlnaServer.controlURL[srvNr]) + 1 - idx);
+    }
+    if(dlna_server) dlna_server(srvNr, m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr], m_dlnaServer.friendlyName[srvNr],m_dlnaServer.controlURL[srvNr]);
+    return true;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+bool DLNA::browseResult(){
+
+    auto makeContentPushBack = [&](){ // lambda, inner function
+        char* dummy = strdup("?");
+        DLNA::m_srvContent.childCount.push_back(0);
+        DLNA::m_srvContent.isAudio.push_back(0);
+        DLNA::m_srvContent.itemSize.push_back(0);
+        DLNA::m_srvContent.itemURL.push_back(dummy);
+        DLNA::m_srvContent.objectId.push_back(dummy);
+        DLNA::m_srvContent.parentId.push_back(dummy);
+        DLNA::m_srvContent.title.push_back(dummy);
+        DLNA::m_srvContent.size++;
+    };
+
+
+    bool item1 = false;
+    bool item2 = false;
+    int a, b;
+    srvContent_clear_and_shrink();
+    for(int i = 0; i < m_content.size(); i++){
+        uint16_t idx = 0;
+        while(*(m_content[i] + idx) == 0x20) idx++;  // same as trim left
+        char* content = m_content[i] + idx;
+    //    log_i("%s", content);
+        /*------C O N T A I N E R -------*/
+        if(startsWith(content, "container id")) {item1 = true; memset(m_chbuf, 0, m_chbufSize);}
+        if(item1){
+            strcat(m_chbuf, content);
+        }
+        if(startsWith(content, "/container")) {
+            item1 = false;
+            uint16_t cNr = m_srvContent.size;
+            makeContentPushBack();
+            replacestr(m_chbuf, "&quot", " ");
+            replacestr(m_chbuf, "\"", " ");
+
+            a = indexOf(m_chbuf, "container id=", 0);
+            if(a >= 0) {
+                a += 14;
+                b = indexOf(m_chbuf, " ", a);
+                m_srvContent.objectId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
+            }
+
+            a = indexOf(m_chbuf, "parentID=", 0);
+            if(a >= 0) {
+                a += 10;
+                b = indexOf(m_chbuf, " ", a);
+                m_srvContent.parentId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
+            }
+
+            a = indexOf(m_chbuf, "childCount=", 0);
+            if(a >= 0) {
+                a += 12;
+                b = indexOf(m_chbuf, " ", a);
+                char tmp[10] = {0}; memcpy(tmp, m_chbuf + a, b - a);
+                m_srvContent.childCount[cNr] = atoi(tmp);
+            }
+
+            a = indexOf(m_chbuf, "dc:title", 0);
+            if(a >= 0) {
+                a += 11;
+                b = indexOf(m_chbuf, "/dc:title", a);
+                b -= 3;
+                m_srvContent.title[cNr] = x_ps_strndup(m_chbuf + a, b - a);
+            }
+
+            if(dlna_browseResult) dlna_browseResult(m_srvContent.objectId[cNr],
+                                                    m_srvContent.parentId[cNr],
+                                                    m_srvContent.childCount[cNr],
+                                                    m_srvContent.title[cNr],
+                                                    m_srvContent.isAudio[cNr],
+                                                    m_srvContent.itemSize[cNr],
+                                                    m_srvContent.itemURL[cNr]);
+
+        }
+        /*------ I T E M -------*/
+        if(startsWith(content, "item id")) {item2 = true; memset(m_chbuf, 0, m_chbufSize);}
+        if(item2){
+            strcat(m_chbuf, content);
+        }
+        if(startsWith(content, "/item")) {
+            item2 = false;
+            uint16_t cNr = m_srvContent.size;
+            makeContentPushBack();
+            replacestr(m_chbuf, "&quot", " ");
+            replacestr(m_chbuf, "\"", " ");
+        //    log_w("%s", m_chbuf);
+
+            a = indexOf(m_chbuf, "item id=", 0);
+            if(a >= 0) {
+                a += 9;
+                b = indexOf(m_chbuf, " ", a);
+                m_srvContent.objectId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
+            }
+
+            a = indexOf(m_chbuf, "parentID=", 0);
+            if(a >= 0){
+                a += 10;
+                b = indexOf(m_chbuf, " ", a);
+                m_srvContent.parentId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
+            }
+
+            a = indexOf(m_chbuf, "&gthttp", 0);
+            if(a >= 0){
+                a += 3;
+                b = indexOf(m_chbuf, "&lt", a);
+                m_srvContent.itemURL[cNr] = x_ps_strndup(m_chbuf + a, b - a);
+            }
+
+            a = indexOf(m_chbuf, "object.item.audioItem", 0);
+            if(a < 0) {m_srvContent.isAudio[cNr] = 0;}
+            else      {m_srvContent.isAudio[cNr] = 1;}
+
+
+            a = indexOf(m_chbuf, "dc:title", 0);
+            if(a >= 0){
+                a += 11;
+                b = indexOf(m_chbuf, "/dc:title", a);
+                b -= 3;
+                m_srvContent.title[cNr] = x_ps_strndup(m_chbuf + a, b - a);
+            }
+
+            a = indexOf(m_chbuf, "&ltres", 0);
+            b = indexOf(m_chbuf, "/res&gt", a);
+            if(a > 0){
+                if(b > a) m_chbuf[b] = '\0';
+                a = indexOf(m_chbuf, "size=", a);
+                if(a > 0){
+                    a += 6;
+                    b = indexOf(m_chbuf, " ", a);
+                    char tmp[20] = {0}; memcpy(tmp, m_chbuf + a, b - a);
+                    m_srvContent.itemSize[cNr] = atol(tmp);
+                }
+            }
+
+            if(dlna_browseResult) dlna_browseResult(m_srvContent.objectId[cNr],
+                                                    m_srvContent.parentId[cNr],
+                                                    m_srvContent.childCount[cNr],
+                                                    m_srvContent.title[cNr],
+                                                    m_srvContent.isAudio[cNr],
+                                                    m_srvContent.itemSize[cNr],
+                                                    m_srvContent.itemURL[cNr]);
+        }
+
+        if(startsWith(content, "<NumberReturned>")){;
+            b= indexOf(content, "</NumberReturned>", 16);
+            char tmp[10] = {0}; memcpy(tmp, content + 16, b - 16);
+            m_numberReturned = atoi(tmp);
+        }
+
+        if(startsWith(content, "<TotalMatches>")){
+            b= indexOf(content, "</TotalMatches>", 14);
+            char tmp[10] = {0}; memcpy(tmp, content + 14, b - 14);
+            m_totalMatches = atoi(tmp);
+        }
+    }
+    if(dlna_browseReady) dlna_browseReady(m_numberReturned, m_totalMatches);
+    return true;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+bool DLNA::srvPost(uint8_t srvNr, const char* objectId, const uint16_t startingIndex, const uint16_t maxCount){
+
+    bool ret;
+    uint8_t cnt = 0;
+
+    m_client.stop();
+    ret = m_client.connect(m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
+
+    if(!ret){
+        sprintf(m_chbuf, "The server %s:%d is not responding", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
+        if(dlna_info) dlna_info(m_chbuf);
+        return false;
+    }
+    while(true){
+        if(m_client.connected()) break;
+        delay(100);
+        cnt++;
+        if(cnt == 10){
+            sprintf(m_chbuf, "The server %s:%d refuses the connection", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
+            if(dlna_info) dlna_info(m_chbuf);
+            return false;
+        }
+    }
+
+    sprintf(m_chbuf, "POST /%s HTTP/1.1\r\n"                                                                                                         \
+                     "Host: %s:%d\r\n"                                                                                                               \
+                     "CACHE-CONTROL: no-cache\r\nPRAGMA: no-cache\r\n"                                                                               \
+                     "Connection: close\r\n"                                                                                                         \
+                     "Content-Length: 000\r\n"                         /* dummy length, determine later*/                                            \
+                     "Content-Type: text/xml; charset=\"utf-8\"\r\n"                                                                                 \
+                     "SOAPAction: \"urn:schemas-upnp-org:service:ContentDirectory:1#Browse\"\r\n"                                                    \
+                     "User-Agent: ESP32/Player/UPNP1.0\r\n"                                                                                          \
+                     "\r\n"                                            /*end header, begin message */                                                \
+                     "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\r\n"\
+                     "<s:Body>"                                                                                                                      \
+                     "<u:Browse xmlns:u=\"urn:schemas-upnp-org:service:ContentDirectory:1\">\r\n"                                                    \
+                     "<ObjectID>%s</ObjectID>\r\n"                                                                                                   \
+                     "<BrowseFlag>BrowseDirectChildren</BrowseFlag>\r\n"                                                                             \
+                     "<Filter>*</Filter>\r\n"                                                                                                        \
+                     "<StartingIndex>%i</StartingIndex>\r\n"           /* startingIndex */                                                           \
+                     "<RequestedCount>%i</RequestedCount>\r\n"         /* max count*/                                                                \
+                     "<SortCriteria></SortCriteria>\r\n"                                                                                             \
+                     "</u:Browse>\r\n"                                                                                                               \
+                     "</s:Body>\r\n"                                                                                                                 \
+                     "</s:Envelope>\r\n\r\n"
+                     , m_dlnaServer.controlURL[srvNr], m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr], objectId, startingIndex, maxCount);
+
+    uint16_t msgBegin = indexOf(m_chbuf, "\r\n\r\n", 0);
+    uint16_t msgLength = strlen(m_chbuf) - (msgBegin + 4);
+    uint16_t insertIdx = indexOf(m_chbuf, "Content-Length:", 0) + 16;
+    char tmp[10]; itoa(msgLength, tmp, 10);
+    memcpy(m_chbuf + insertIdx, tmp, 3);
+    m_chbuf[strlen(m_chbuf)+ 1] = '\0';
+
+    m_client.print(m_chbuf);
+    cnt = 0;
+    while(true){
+        if(m_client.available()){break;}
+        delay(100);
+        cnt++;
+        if(cnt == 10){
+            sprintf(m_chbuf, "The server %s:%d is not responding after request", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
+            if(dlna_info) dlna_info(m_chbuf);
+            return false;
+        }
+    }
+    return true;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+int8_t DLNA::browseServer(uint8_t srvNr, const char* objectId, const uint16_t startingIndex, const uint16_t maxCount){
+    if(!objectId) {log_e("wrong objectId"); return -1;} // no objectId given
+    if(srvNr >= m_dlnaServer.size) {log_e("server index too high"); return -2;} // srvNr too high
+    if(m_state != IDLE) {log_e("state is not idle"); return -3;}
+
+    m_srvNr = srvNr;
+    strcpy(m_objectId, objectId);
+    m_startingIndex = startingIndex;
+    m_maxCount = maxCount;
+    m_state = BROWSE_SERVER;
+    return 0;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+const char* DLNA::stringifyContent() {
+    uint16_t JSONstrLength = 0;
+    if(m_JSONstr){free(m_JSONstr); m_JSONstr = NULL;}
+    if(m_srvContent.size == 0) return "[]"; // no content found
+    if(m_PSRAMfound) { m_JSONstr = (char*)ps_malloc(2);}
+    else             { m_JSONstr = (char*)malloc(2);}
+    JSONstrLength += 2;
+    memcpy(m_JSONstr, "[\0", 2);
+
+    char childCount[5]; char isAudio[6]; char itemSize[9];
+
+    for(int i = 0; i < m_srvContent.size; i++) { // build a JSON string in PSRAM, e.g. [{"name":"m","dir":true},{"name":"s","dir":true}]
+        itoa(m_srvContent.childCount[i], childCount, 10);
+        if(m_srvContent.isAudio[i]) strcpy(isAudio, "true"); else strcpy(isAudio, "false");
+        ltoa(m_srvContent.itemSize[i], childCount, 10);
+        JSONstrLength = strlen(childCount) + strlen(isAudio) + strlen(itemSize) + strlen(m_srvContent.itemURL[i])+
+                        strlen(m_srvContent.objectId[i]) + strlen(m_srvContent.parentId[i]) + strlen(m_srvContent.title[i]);
+
+    //  [{"objectId":"1$4","parentId":"1","childCount":"5","title":"Bilder","isAudio":"false","itemSize":"342345","itemURL":"http://myPC/Pictues/myPicture.jpg"},{"objectId ...."}]
+    //  {"objectId":"","parentId":"","childCount":"","title":"","isAudio":"","itemSize":"","itemURL":""},   --> 96 chars
+        JSONstrLength += strlen(m_JSONstr) + 96 + 2;
+
+        if(m_PSRAMfound) { m_JSONstr = (char*)ps_realloc(m_JSONstr, JSONstrLength); }
+        else             { m_JSONstr = (char*)realloc(m_JSONstr, JSONstrLength); }
+
+        strcat(m_JSONstr, "{\"objectId\":\""); strcat(m_JSONstr, m_srvContent.objectId[i]);
+        strcat(m_JSONstr, "\",\"parentId\":\""); strcat(m_JSONstr, m_srvContent.parentId[i]);
+        strcat(m_JSONstr, "\",\"childCount\":\""); strcat(m_JSONstr, childCount);
+        strcat(m_JSONstr, "\",\"title\":\""); strcat(m_JSONstr, m_srvContent.title[i]);
+        strcat(m_JSONstr, "\",\"isAudio\":\""); strcat(m_JSONstr, isAudio);
+        strcat(m_JSONstr, "\",\"itemSize\":\""); strcat(m_JSONstr, itemSize);
+        strcat(m_JSONstr, "\",\"itemURL\":\""); strcat(m_JSONstr, m_srvContent.itemURL[i]);
+        strcat(m_JSONstr, "},");
+    }
+    m_JSONstr[JSONstrLength - 3] = ']'; // replace comma by square bracket close
+    return m_JSONstr;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+uint8_t DLNA::getState(){
+    return m_state;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void DLNA::loop(){
+    static uint8_t cnt = 0;
+    bool res;
+    switch(m_state){
+        case IDLE:
+            break;
+        case SEEK_SERVER:
+            if(m_timeStamp + m_timeout > millis()){
+                size_t len = m_udp.parsePacket();
+                if(len){
+                    parseDlnaServer(len); // registers all media servers that respond within the time until the timeout
+                }
+                cnt = 0;
+            }
+            else{
+                m_udp.stop();
+                m_state = GET_SERVER_ITEMS;
+            }
+            break;
+        case GET_SERVER_ITEMS:
+            if(cnt < m_dlnaServer.size){
+                res = srvGet(cnt);
+                if(!res){log_e("error in srvGet"); m_state = IDLE; break;}
+                res = readHttpHeader();
+                if(!res){log_e("error in readHttpHeader"); m_state = IDLE; break;}
+                res = readContent();
+                if(!res){log_e("error in readContent"); m_state = IDLE; break;}
+                getServerItems(cnt);
+                cnt++;
+                break;
+            }
+            cnt = 0;
+            dlna_seekReady(m_dlnaServer.size);
+            m_state = IDLE;
+            break;
+        case BROWSE_SERVER:
+            res = srvPost(m_srvNr, m_objectId, m_startingIndex, m_maxCount);
+            if(!res){m_state = IDLE; break;}
+            res = readHttpHeader();
+            if(!res) {m_state = IDLE; break;}
+            res = readContent();
+            if(!res) {m_state = IDLE; break;}
+            res = browseResult();
+            if(!res) {m_state = IDLE; break;}
+            cnt = 0;
+            m_state = IDLE;
+            break;
+        default: break;
+    }
+}
