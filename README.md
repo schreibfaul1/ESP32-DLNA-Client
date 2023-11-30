@@ -40,7 +40,7 @@ void loop(){
     }
 
     if(f_browse){
-        dlna.browseServer(2, "0"); // objectId "0" is root
+        dlna.browseServer(0, "0"); // objectId "0" is root
         f_browse = false;
     }
 }
