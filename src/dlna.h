@@ -66,6 +66,7 @@ public:
     srvContent_t getBrowseResult();
     int8_t browseServer(uint8_t srvNr, const char* objectId, const uint16_t startingIndex = 0, const uint16_t maxCount = 100);
     const char* stringifyContent();
+    const char* stringifyServer();
     uint8_t getState();
     void loop();
 

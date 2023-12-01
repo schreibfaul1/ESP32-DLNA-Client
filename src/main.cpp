@@ -35,7 +35,7 @@ void loop(){
     }
 
     if(f_browse){
-        dlna.browseServer(2, "0"); // objectId "0" is root
+        dlna.browseServer(0, "0"); // objectId "0" is root
         f_browse = false;
     }
 }
@@ -68,6 +68,7 @@ void dlna_server(uint8_t serverId, const char* IP_addr, uint16_t port, const cha
 void dlna_seekReady(uint8_t numberOfServer){
     Serial.printf("%i media servers found\n\n", numberOfServer);
     f_browse = true;
+    Serial.printf("%s\n\n", dlna.stringifyServer()); // and now stringify the found servers, make JSONstring:
 }
 
 void dlna_browseResult(const char* objectId, const char* parentId, uint16_t childCount, const char* title, bool isAudio, uint32_t itemSize, const char* itemURL){

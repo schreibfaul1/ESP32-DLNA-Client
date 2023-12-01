@@ -606,6 +606,38 @@ int8_t DLNA::browseServer(uint8_t srvNr, const char* objectId, const uint16_t st
     return 0;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+const char* DLNA::stringifyServer() {
+    uint16_t JSONstrLength = 0;
+    if(m_JSONstr){free(m_JSONstr); m_JSONstr = NULL;}
+    if(m_dlnaServer.size == 0) return "[]"; // no content found
+    if(m_PSRAMfound) { m_JSONstr = (char*)ps_malloc(2);}
+    else             { m_JSONstr = (char*)malloc(2);}
+    JSONstrLength += 2;
+    memcpy(m_JSONstr, "[\0", 2);
+
+    char id[5]; char port[6];
+
+    for(int i = 0; i < m_dlnaServer.size; i++) { // build a JSON string in PSRAM, e.g. [{"name":"m","dir":true},{"name":"s","dir":false}]
+        itoa(i, id, 10);
+        itoa(m_dlnaServer.port[i], port, 10);
+        JSONstrLength = strlen(id) + strlen(port) + strlen(m_dlnaServer.friendlyName[i])+ strlen(m_dlnaServer.ip[i]);
+    //  [{"srvId":"1","friendlyName":"minidlna","ip":"192.168.178.1","port":"49000""}]
+    //  {"srvId":"","friendlyName":"","ip":"","port":""},   --> 49 chars
+        JSONstrLength += strlen(m_JSONstr) + 49 + 2;
+
+        if(m_PSRAMfound) { m_JSONstr = (char*)ps_realloc(m_JSONstr, JSONstrLength); }
+        else             { m_JSONstr = (char*)realloc(m_JSONstr, JSONstrLength); }
+
+        strcat(m_JSONstr, "{\"srvId\":\""); strcat(m_JSONstr, id);
+        strcat(m_JSONstr, "\",\"friendlyName\":\""); strcat(m_JSONstr, m_dlnaServer.friendlyName[i]);
+        strcat(m_JSONstr, "\",\"ip\":\""); strcat(m_JSONstr, m_dlnaServer.ip[i]);
+        strcat(m_JSONstr, "\",\"port\":\""); strcat(m_JSONstr, port);
+        strcat(m_JSONstr, "\"},");
+    }
+    m_JSONstr[JSONstrLength - 3] = ']'; // replace comma by square bracket close
+    return m_JSONstr;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 const char* DLNA::stringifyContent() {
     uint16_t JSONstrLength = 0;
     if(m_JSONstr){free(m_JSONstr); m_JSONstr = NULL;}
@@ -617,7 +649,7 @@ const char* DLNA::stringifyContent() {
 
     char childCount[5]; char isAudio[6]; char itemSize[9];
 
-    for(int i = 0; i < m_srvContent.size; i++) { // build a JSON string in PSRAM, e.g. [{"name":"m","dir":true},{"name":"s","dir":true}]
+    for(int i = 0; i < m_srvContent.size; i++) { // build a JSON string in PSRAM, e.g. [{"name":"m","dir":true},{"name":"s","dir":false}]
         itoa(m_srvContent.childCount[i], childCount, 10);
         if(m_srvContent.isAudio[i]) strcpy(isAudio, "true"); else strcpy(isAudio, "false");
         ltoa(m_srvContent.itemSize[i], childCount, 10);
@@ -625,8 +657,8 @@ const char* DLNA::stringifyContent() {
                         strlen(m_srvContent.objectId[i]) + strlen(m_srvContent.parentId[i]) + strlen(m_srvContent.title[i]);
 
     //  [{"objectId":"1$4","parentId":"1","childCount":"5","title":"Bilder","isAudio":"false","itemSize":"342345","itemURL":"http://myPC/Pictues/myPicture.jpg"},{"objectId ...."}]
-    //  {"objectId":"","parentId":"","childCount":"","title":"","isAudio":"","itemSize":"","itemURL":""},   --> 96 chars
-        JSONstrLength += strlen(m_JSONstr) + 96 + 2;
+    //  {"objectId":"","parentId":"","childCount":"","title":"","isAudio":"","itemSize":"","itemURL":""},   --> 97 chars
+        JSONstrLength += strlen(m_JSONstr) + 97 + 2;
 
         if(m_PSRAMfound) { m_JSONstr = (char*)ps_realloc(m_JSONstr, JSONstrLength); }
         else             { m_JSONstr = (char*)realloc(m_JSONstr, JSONstrLength); }
@@ -638,7 +670,7 @@ const char* DLNA::stringifyContent() {
         strcat(m_JSONstr, "\",\"isAudio\":\""); strcat(m_JSONstr, isAudio);
         strcat(m_JSONstr, "\",\"itemSize\":\""); strcat(m_JSONstr, itemSize);
         strcat(m_JSONstr, "\",\"itemURL\":\""); strcat(m_JSONstr, m_srvContent.itemURL[i]);
-        strcat(m_JSONstr, "},");
+        strcat(m_JSONstr, "\"},");
     }
     m_JSONstr[JSONstrLength - 3] = ']'; // replace comma by square bracket close
     return m_JSONstr;
