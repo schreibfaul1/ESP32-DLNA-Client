@@ -15,7 +15,7 @@ extern __attribute__((weak)) void dlna_seekReady(uint8_t numberOfServer);
 extern __attribute__((weak)) void dlna_browseResult(const char* objectId, const char* parentId, uint16_t childCount, const char* title, bool isAudio, uint32_t itemSize, const char* itemURL);
 extern __attribute__((weak)) void dlna_browseReady(uint16_t numbertReturned, uint16_t totalMatches);
 
-class DLNA{
+class DLNA_ESP32{
 
 public:
     typedef struct _dlnaServer {
@@ -58,8 +58,8 @@ private:
     std::vector<char*> m_content;
 
 public:
-    DLNA();
-    ~DLNA();
+    DLNA_ESP32();
+    ~DLNA_ESP32();
     bool seekServer();
     int8_t listServer();
     dlnaServer_t getServer();

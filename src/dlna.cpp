@@ -14,7 +14,7 @@ void loop(){
 
 */
 
-DLNA::DLNA(){
+DLNA_ESP32::DLNA_ESP32(){
     m_state = IDLE;
     m_chunked = false;
     if(!psramInit()) {
@@ -28,13 +28,13 @@ DLNA::DLNA(){
     }
 }
 
-DLNA::~DLNA(){
+DLNA_ESP32::~DLNA_ESP32(){
     dlnaServer_clear_and_shrink();
     vector_clear_and_shrink(m_content);
     if(m_chbuf){free(m_chbuf); m_chbuf = NULL;}
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-bool DLNA::seekServer(){
+bool DLNA_ESP32::seekServer(){
     if(WiFi.status() != WL_CONNECTED) return false; // guard
     dlnaServer_clear_and_shrink();
     uint8_t ret = 0;
@@ -71,7 +71,7 @@ bool DLNA::seekServer(){
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-int8_t DLNA::listServer(){
+int8_t DLNA_ESP32::listServer(){
     if(m_state == SEEK_SERVER) return -1; // seek in progress
     for(uint8_t i = 0; i < m_dlnaServer.size; i++){
         if(dlna_server) dlna_server(i, m_dlnaServer.ip[i], m_dlnaServer.port[i], m_dlnaServer.friendlyName[i], m_dlnaServer.controlURL[i]);
@@ -79,15 +79,15 @@ int8_t DLNA::listServer(){
     return m_dlnaServer.size;
 }
 
-DLNA::dlnaServer_t DLNA::getServer(){
+DLNA_ESP32::dlnaServer_t DLNA_ESP32::getServer(){
     return m_dlnaServer;
 }
 
-DLNA::srvContent_t DLNA::getBrowseResult(){
+DLNA_ESP32::srvContent_t DLNA_ESP32::getBrowseResult(){
     return m_srvContent;;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void DLNA::parseDlnaServer(uint16_t len){
+void DLNA_ESP32::parseDlnaServer(uint16_t len){
     if(len > m_chbufSize - 1) len = m_chbufSize - 1; // guard
     char* dummy = strdup("?");
     memset(m_chbuf, 0, m_chbufSize);
@@ -116,7 +116,7 @@ void DLNA::parseDlnaServer(uint16_t len){
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-bool DLNA::srvGet(uint8_t srvNr){
+bool DLNA_ESP32::srvGet(uint8_t srvNr){
     bool ret;
     uint8_t cnt = 0;
     m_client.stop();
@@ -153,7 +153,7 @@ bool DLNA::srvGet(uint8_t srvNr){
     return true;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-bool DLNA::readHttpHeader(){
+bool DLNA_ESP32::readHttpHeader(){
 
     bool ct_seen = false;
     m_timeStamp  = millis();
@@ -224,7 +224,7 @@ error:
     return false;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-bool DLNA::readContent(){
+bool DLNA_ESP32::readContent(){
 
     m_timeStamp  = millis();
     m_timeout    = 2500; // ms
@@ -290,7 +290,7 @@ error:
     return false;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-bool DLNA::getServerItems(uint8_t srvNr){
+bool DLNA_ESP32::getServerItems(uint8_t srvNr){
     if(m_dlnaServer.size == 0) return 0;  // return if none detected
 
 
@@ -364,18 +364,18 @@ bool DLNA::getServerItems(uint8_t srvNr){
     return true;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-bool DLNA::browseResult(){
+bool DLNA_ESP32::browseResult(){
 
     auto makeContentPushBack = [&](){ // lambda, inner function
         char* dummy = strdup("?");
-        DLNA::m_srvContent.childCount.push_back(0);
-        DLNA::m_srvContent.isAudio.push_back(0);
-        DLNA::m_srvContent.itemSize.push_back(0);
-        DLNA::m_srvContent.itemURL.push_back(dummy);
-        DLNA::m_srvContent.objectId.push_back(dummy);
-        DLNA::m_srvContent.parentId.push_back(dummy);
-        DLNA::m_srvContent.title.push_back(dummy);
-        DLNA::m_srvContent.size++;
+        DLNA_ESP32::m_srvContent.childCount.push_back(0);
+        DLNA_ESP32::m_srvContent.isAudio.push_back(0);
+        DLNA_ESP32::m_srvContent.itemSize.push_back(0);
+        DLNA_ESP32::m_srvContent.itemURL.push_back(dummy);
+        DLNA_ESP32::m_srvContent.objectId.push_back(dummy);
+        DLNA_ESP32::m_srvContent.parentId.push_back(dummy);
+        DLNA_ESP32::m_srvContent.title.push_back(dummy);
+        DLNA_ESP32::m_srvContent.size++;
     };
 
 
@@ -524,7 +524,7 @@ bool DLNA::browseResult(){
     return true;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-bool DLNA::srvPost(uint8_t srvNr, const char* objectId, const uint16_t startingIndex, const uint16_t maxCount){
+bool DLNA_ESP32::srvPost(uint8_t srvNr, const char* objectId, const uint16_t startingIndex, const uint16_t maxCount){
 
     bool ret;
     uint8_t cnt = 0;
@@ -593,7 +593,7 @@ bool DLNA::srvPost(uint8_t srvNr, const char* objectId, const uint16_t startingI
     return true;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-int8_t DLNA::browseServer(uint8_t srvNr, const char* objectId, const uint16_t startingIndex, const uint16_t maxCount){
+int8_t DLNA_ESP32::browseServer(uint8_t srvNr, const char* objectId, const uint16_t startingIndex, const uint16_t maxCount){
     if(!objectId) {log_e("wrong objectId"); return -1;} // no objectId given
     if(srvNr >= m_dlnaServer.size) {log_e("server index too high"); return -2;} // srvNr too high
     if(m_state != IDLE) {log_e("state is not idle"); return -3;}
@@ -606,7 +606,7 @@ int8_t DLNA::browseServer(uint8_t srvNr, const char* objectId, const uint16_t st
     return 0;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-const char* DLNA::stringifyServer() {
+const char* DLNA_ESP32::stringifyServer() {
     uint16_t JSONstrLength = 0;
     if(m_JSONstr){free(m_JSONstr); m_JSONstr = NULL;}
     if(m_dlnaServer.size == 0) return "[]"; // no content found
@@ -638,7 +638,7 @@ const char* DLNA::stringifyServer() {
     return m_JSONstr;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-const char* DLNA::stringifyContent() {
+const char* DLNA_ESP32::stringifyContent() {
     uint16_t JSONstrLength = 0;
     if(m_JSONstr){free(m_JSONstr); m_JSONstr = NULL;}
     if(m_srvContent.size == 0) return "[]"; // no content found
@@ -676,11 +676,11 @@ const char* DLNA::stringifyContent() {
     return m_JSONstr;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-uint8_t DLNA::getState(){
+uint8_t DLNA_ESP32::getState(){
     return m_state;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void DLNA::loop(){
+void DLNA_ESP32::loop(){
     static uint8_t cnt = 0;
     bool res;
     switch(m_state){
