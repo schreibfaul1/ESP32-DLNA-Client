@@ -1,5 +1,7 @@
 #include "dlna.h"
 
+// Created on: 30.11.2023
+// Updated on: 03.12.2023
 /*
 //example
 DLNA dlna;
@@ -607,6 +609,8 @@ int8_t DLNA_ESP32::browseServer(uint8_t srvNr, const char* objectId, const uint1
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 const char* DLNA_ESP32::stringifyServer() {
+    if(m_dlnaServer.size == 0) return ""; // guard
+
     uint16_t JSONstrLength = 0;
     if(m_JSONstr){free(m_JSONstr); m_JSONstr = NULL;}
     if(m_dlnaServer.size == 0) return "[]"; // no content found
@@ -639,6 +643,8 @@ const char* DLNA_ESP32::stringifyServer() {
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 const char* DLNA_ESP32::stringifyContent() {
+    if(m_srvContent.size == 0) return ""; // guard
+
     uint16_t JSONstrLength = 0;
     if(m_JSONstr){free(m_JSONstr); m_JSONstr = NULL;}
     if(m_srvContent.size == 0) return "[]"; // no content found
