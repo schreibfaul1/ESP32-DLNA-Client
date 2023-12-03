@@ -39,6 +39,7 @@ DLNA_ESP32::~DLNA_ESP32(){
 bool DLNA_ESP32::seekServer(){
     if(WiFi.status() != WL_CONNECTED) return false; // guard
     dlnaServer_clear_and_shrink();
+    m_dlnaServer.size = 0;
     uint8_t ret = 0;
     const char searchTX[] = "M-SEARCH * HTTP/1.1\r\n"\
                             "HOST: 239.255.255.250:1900\r\n"\
