@@ -42,7 +42,7 @@ public:
         std::vector<char*>     parentId;
         std::vector<uint8_t>   isAudio;
         std::vector<char*>     itemURL;
-        std::vector<uint32_t>  itemSize;
+        std::vector<int32_t>   itemSize;
         std::vector<char*>     title;
         std::vector<int16_t>   childCount;
     }srvContent_t;

@@ -380,7 +380,8 @@ bool DLNA_ESP32::browseResult(){
         DLNA_ESP32::m_srvContent.size++;
     };
 
-
+    m_numberReturned = 0;
+    m_totalMatches = 0;
     bool item1 = false;
     bool item2 = false;
     int a, b;
@@ -609,7 +610,7 @@ int8_t DLNA_ESP32::browseServer(uint8_t srvNr, const char* objectId, const uint1
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 const char* DLNA_ESP32::stringifyServer() {
-    if(m_dlnaServer.size == 0) return ""; // guard
+    if(m_dlnaServer.size == 0) return "[]"; // guard
 
     uint16_t JSONstrLength = 0;
     if(m_JSONstr){free(m_JSONstr); m_JSONstr = NULL;}
@@ -643,7 +644,7 @@ const char* DLNA_ESP32::stringifyServer() {
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 const char* DLNA_ESP32::stringifyContent() {
-    if(m_srvContent.size == 0) return ""; // guard
+    if(m_srvContent.size == 0) return "[]"; // guard
 
     uint16_t JSONstrLength = 0;
     if(m_JSONstr){free(m_JSONstr); m_JSONstr = NULL;}
@@ -658,7 +659,7 @@ const char* DLNA_ESP32::stringifyContent() {
     for(int i = 0; i < m_srvContent.size; i++) { // build a JSON string in PSRAM, e.g. [{"name":"m","dir":true},{"name":"s","dir":false}]
         itoa(m_srvContent.childCount[i], childCount, 10);
         if(m_srvContent.isAudio[i]) strcpy(isAudio, "true"); else strcpy(isAudio, "false");
-        ltoa(m_srvContent.itemSize[i], childCount, 10);
+        ltoa(m_srvContent.itemSize[i], itemSize, 10);
         JSONstrLength = strlen(childCount) + strlen(isAudio) + strlen(itemSize) + strlen(m_srvContent.itemURL[i])+
                         strlen(m_srvContent.objectId[i]) + strlen(m_srvContent.parentId[i]) + strlen(m_srvContent.title[i]);
 
@@ -678,7 +679,8 @@ const char* DLNA_ESP32::stringifyContent() {
         strcat(m_JSONstr, "\",\"itemURL\":\""); strcat(m_JSONstr, m_srvContent.itemURL[i]);
         strcat(m_JSONstr, "\"},");
     }
-    m_JSONstr[JSONstrLength - 3] = ']'; // replace comma by square bracket close
+    m_JSONstr[JSONstrLength - 3] = ']';  // replace comma by square bracket close
+    m_JSONstr[JSONstrLength - 2] = '\0'; // and terminate
     return m_JSONstr;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
