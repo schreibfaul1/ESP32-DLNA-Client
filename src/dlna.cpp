@@ -148,7 +148,7 @@ bool DLNA_ESP32::srvGet(uint8_t srvNr){
         if(m_client.available()) break;
         delay(100);
         cnt++;
-        if(cnt == 10){
+        if(cnt == 50){
             log_e("The server %s:%d is not responding after request", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
             return false;
         }
@@ -656,7 +656,7 @@ const char* DLNA_ESP32::stringifyContent() {
     JSONstrLength += 2;
     memcpy(m_JSONstr, "[\0", 2);
 
-    char childCount[5]; char isAudio[6]; char itemSize[9];
+    char childCount[5]; char isAudio[6]; char itemSize[12];
 
     for(int i = 0; i < m_srvContent.size; i++) { // build a JSON string in PSRAM, e.g. [{"name":"m","dir":true},{"name":"s","dir":false}]
         itoa(m_srvContent.childCount[i], childCount, 10);
