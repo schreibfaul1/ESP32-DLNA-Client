@@ -1,7 +1,7 @@
 #include "dlna.h"
 
 // Created on: 30.11.2023
-// Updated on: 03.12.2023
+// Updated on: 04.12.2023
 /*
 //example
 DLNA dlna;
@@ -356,12 +356,12 @@ bool DLNA_ESP32::getServerItems(uint8_t srvNr){
         strcpy(tmp, m_dlnaServer.location[srvNr]); // location string becomes first part of controlURL
         strcat(tmp, m_dlnaServer.controlURL[srvNr]);
         free(m_dlnaServer.controlURL[srvNr]);
-        m_dlnaServer.controlURL[srvNr] = tmp;
+        m_dlnaServer.controlURL[srvNr] = x_ps_strdup(tmp);
         free(tmp);
     }
     if(m_dlnaServer.controlURL[srvNr] && startsWith(m_dlnaServer.controlURL[srvNr], "http://")) { // remove "http://ip:port/" from begin of string
         idx = indexOf(m_dlnaServer.controlURL[srvNr], "/", 7);
-        memcpy(m_dlnaServer.controlURL[srvNr], m_dlnaServer.controlURL[srvNr] + idx + 1, strlen(m_dlnaServer.controlURL[srvNr]) + 1 - idx);
+        memcpy(m_dlnaServer.controlURL[srvNr], m_dlnaServer.controlURL[srvNr] + idx + 1, strlen(m_dlnaServer.controlURL[srvNr]) + idx + 2);
     }
     if(dlna_server) dlna_server(srvNr, m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr], m_dlnaServer.friendlyName[srvNr],m_dlnaServer.controlURL[srvNr]);
     return true;
@@ -641,6 +641,7 @@ const char* DLNA_ESP32::stringifyServer() {
         strcat(m_JSONstr, "\"},");
     }
     m_JSONstr[JSONstrLength - 3] = ']'; // replace comma by square bracket close
+    m_JSONstr[JSONstrLength - 2] = '\0'; // and terminate
     return m_JSONstr;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -682,6 +683,7 @@ const char* DLNA_ESP32::stringifyContent() {
     }
     m_JSONstr[JSONstrLength - 3] = ']';  // replace comma by square bracket close
     m_JSONstr[JSONstrLength - 2] = '\0'; // and terminate
+
     return m_JSONstr;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

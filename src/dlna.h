@@ -1,5 +1,5 @@
 // Created on: 30.11.2023
-// Updated on: 03.12.2023
+// Updated on: 04.12.2023
 
 
 #pragma once
@@ -92,7 +92,7 @@ private:
     bool        m_PSRAMfound = false;
     bool        m_chunked = false;
     char*       m_chbuf = NULL;
-    char        m_objectId[10];
+    char        m_objectId[20];
     uint8_t     m_srvNr = 0;
     uint16_t    m_chbufSize = 0;
     uint32_t    m_contentlength = 0;
