@@ -7,6 +7,8 @@ The DLNA media servers behave differently. Therefore I don't know whether every 
 - DLNAServer on Android
 - integrated DLNA server of a WiFiRouter (Fritzbox 7490)
 
+Given the amount of data that can arise from a query, the use of an ESP32 with PSRAM is recommended. For convenience in connection with a web server, the queried data can be output in JSON format. An additional JSON library is not required. The JSON string, like the query, is of course preferably created in PSRAM.
+
 Example:
 ````c++
 #include "Arduino.h"
