@@ -1,6 +1,12 @@
 # ESP32-DLNA
 This is a lightweight version of <a href="https://github.com/yellobyte/"> SoapESP32</a>, yellobyte's outstanding and complex library.
 There are only basic functions here that are absolutely necessary for a DLNA client.
+The DLNA media servers behave differently. Therefore I don't know whether every media server works with this library. I tested:
+
+- miniDLNA on Linux
+- DLNAServer on Android
+- integrated DLNA server of a WiFiRouter (Fritzbox 7490)
+
 Example:
 ````c++
 #include "Arduino.h"
