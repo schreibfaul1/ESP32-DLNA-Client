@@ -1,8 +1,8 @@
 #include "Arduino.h"
 #include "WiFiMulti.h"
-#include "dlna.h"
+#include "DLNAClient.h"
 
-DLNA_ESP32 dlna;
+DLNA_Client dlna;
 
 WiFiMulti wifiMulti;
 String ssid =     "Wolles-FRITZBOX";
@@ -41,7 +41,7 @@ void loop(){
 }
 // --------------------------------------------------------------------------------------------------
 void getserver(){  // example: read server items
-    DLNA_ESP32::dlnaServer_t srv = dlna.getServer();
+    DLNA_Client::dlnaServer_t srv = dlna.getServer();
     for(int i = 0; i< srv.size; i++){
         Serial.printf("[%i] %s\n", i, srv.controlURL[i]);
     }
@@ -49,7 +49,7 @@ void getserver(){  // example: read server items
 }
 
 void getBrowseContent(){ // example: read some content after browsing
-    DLNA_ESP32::srvContent srvCt = dlna.getBrowseResult();
+    DLNA_Client::srvContent srvCt = dlna.getBrowseResult();
     for(int i = 0; i< srvCt.size; i++){
         Serial.printf("[%i] %s\n", i, srvCt.title[i]);
     }
