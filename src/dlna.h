@@ -1,5 +1,5 @@
 // Created on: 30.11.2023
-// Updated on: 04.12.2023
+// Updated on: 05.12.2023
 
 
 #pragma once
@@ -12,6 +12,8 @@
 #define SSDP_MULTICAST_PORT       1900
 #define SEEK_TIMEOUT              4000
 #define READ_TIMEOUT              2500
+#define CONNECT_TIMEOUT            200
+#define AVAIL_TIMEOUT              200
 
 extern __attribute__((weak)) void dlna_info(const char *);
 extern __attribute__((weak)) void dlna_server(uint8_t serverId, const char* IP_addr, uint16_t port, const char* friendlyName, const char* controlURL);
@@ -194,9 +196,11 @@ private:
     //-------------------------------------------------------------------------------------------------------
     char* x_ps_strdup(const char* str){
         char* ps_str = NULL;
-        if(m_PSRAMfound){ps_str = (char*) ps_malloc(strlen(str) + 1);}
-        else            {ps_str = (char*)    malloc(strlen(str) + 1);}
+        uint16_t len = strlen(str);
+        if(m_PSRAMfound){ps_str = (char*) ps_malloc(len + 1);}
+        else            {ps_str = (char*)    malloc(len + 1);}
         strcpy(ps_str, str);
+        ps_str[len] = '\0';
         return ps_str;
     }
     //-------------------------------------------------------------------------------------------------------

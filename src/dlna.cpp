@@ -1,7 +1,7 @@
 #include "dlna.h"
 
 // Created on: 30.11.2023
-// Updated on: 04.12.2023
+// Updated on: 05.12.2023
 /*
 //example
 DLNA dlna;
@@ -121,7 +121,6 @@ void DLNA_ESP32::parseDlnaServer(uint16_t len){
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 bool DLNA_ESP32::srvGet(uint8_t srvNr){
     bool ret;
-    uint8_t cnt = 0;
     m_client.stop();
     m_client.setTimeout(4000);
     ret = m_client.connect(m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
@@ -130,11 +129,10 @@ bool DLNA_ESP32::srvGet(uint8_t srvNr){
         log_e("The server %s:%d is not responding", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
         return false;
     }
+    uint32_t t = millis() + CONNECT_TIMEOUT;
     while(true){
         if(m_client.connected()) break;
-        delay(100);
-        cnt++;
-        if(cnt == 10){
+        if(t < millis()){
             log_e("The server %s:%d refuses the connection", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
             return false;
         }
@@ -143,12 +141,10 @@ bool DLNA_ESP32::srvGet(uint8_t srvNr){
     sprintf(m_chbuf, "GET /%s HTTP/1.1\r\nHost: %s:%d\r\nConnection: close\r\nUser-Agent: ESP32/Player/UPNP1.0\r\n\r\n",
                       m_dlnaServer.location[srvNr], m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
     m_client.print(m_chbuf);
-    cnt = 0;
+    t = millis() + AVAIL_TIMEOUT;
     while(true){
         if(m_client.available()) break;
-        delay(100);
-        cnt++;
-        if(cnt == 50){
+        if(t < millis()){
             log_e("The server %s:%d is not responding after request", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
             return false;
         }
@@ -583,12 +579,10 @@ bool DLNA_ESP32::srvPost(uint8_t srvNr, const char* objectId, const uint16_t sta
     m_chbuf[strlen(m_chbuf)+ 1] = '\0';
 
     m_client.print(m_chbuf);
-    cnt = 0;
+    uint32_t t = millis() + AVAIL_TIMEOUT;
     while(true){
-        if(m_client.available()){break;}
-        delay(100);
-        cnt++;
-        if(cnt == 10){
+        if(m_client.available()) break;
+        if(t < millis()){
             sprintf(m_chbuf, "The server %s:%d is not responding after request", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
             if(dlna_info) dlna_info(m_chbuf);
             return false;
