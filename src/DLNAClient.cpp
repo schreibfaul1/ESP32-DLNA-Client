@@ -397,27 +397,26 @@ bool DLNA_Client::browseResult(){
             item1 = false;
             uint16_t cNr = m_srvContent.size;
             makeContentPushBack();
-            replacestr(m_chbuf, "&quot", " ");
-            replacestr(m_chbuf, "\"", " ");
-
+            replacestr(m_chbuf, "&quot", "\"");
             a = indexOf(m_chbuf, "container id=", 0);
             if(a >= 0) {
                 a += 14;
-                b = indexOf(m_chbuf, " ", a);
+                b = indexOf(m_chbuf, "\"", a);
                 m_srvContent.objectId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
+                log_e("objId %s",m_srvContent.objectId[cNr]);
             }
 
             a = indexOf(m_chbuf, "parentID=", 0);
             if(a >= 0) {
                 a += 10;
-                b = indexOf(m_chbuf, " ", a);
+                b = indexOf(m_chbuf, "\"", a);
                 m_srvContent.parentId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
             }
 
             a = indexOf(m_chbuf, "childCount=", 0);
             if(a >= 0) {
                 a += 12;
-                b = indexOf(m_chbuf, " ", a);
+                b = indexOf(m_chbuf, "\"", a);
                 char tmp[10] = {0}; memcpy(tmp, m_chbuf + a, b - a);
                 m_srvContent.childCount[cNr] = atoi(tmp);
             }
@@ -448,21 +447,18 @@ bool DLNA_Client::browseResult(){
             item2 = false;
             uint16_t cNr = m_srvContent.size;
             makeContentPushBack();
-            replacestr(m_chbuf, "&quot", " ");
-            replacestr(m_chbuf, "\"", " ");
-        //    log_w("%s", m_chbuf);
-
+            replacestr(m_chbuf, "&quot", "\"");
             a = indexOf(m_chbuf, "item id=", 0);
             if(a >= 0) {
                 a += 9;
-                b = indexOf(m_chbuf, " ", a);
+                b = indexOf(m_chbuf, "\"", a);
                 m_srvContent.objectId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
             }
 
             a = indexOf(m_chbuf, "parentID=", 0);
             if(a >= 0){
                 a += 10;
-                b = indexOf(m_chbuf, " ", a);
+                b = indexOf(m_chbuf, "\"", a);
                 m_srvContent.parentId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
             }
 
@@ -493,8 +489,8 @@ bool DLNA_Client::browseResult(){
                 a = indexOf(m_chbuf, "size=", a);
                 if(a > 0){
                     a += 6;
-                    b = indexOf(m_chbuf, " ", a);
-                    char tmp[20] = {0}; memcpy(tmp, m_chbuf + a, b - a);
+                    b = indexOf(m_chbuf, "\"", a);
+                    char tmp[60] = {0}; memcpy(tmp, m_chbuf + a, b - a);
                     m_srvContent.itemSize[cNr] = atol(tmp);
                 }
             }
