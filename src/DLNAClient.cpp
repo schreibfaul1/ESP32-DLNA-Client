@@ -403,7 +403,6 @@ bool DLNA_Client::browseResult(){
                 a += 14;
                 b = indexOf(m_chbuf, "\"", a);
                 m_srvContent.objectId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
-                log_e("objId %s",m_srvContent.objectId[cNr]);
             }
 
             a = indexOf(m_chbuf, "parentID=", 0);
