@@ -333,12 +333,10 @@ bool DLNA_Client::getServerItems(uint8_t srvNr){
             int8_t posColon = (indexOf(presentationURL, ":", 8));
             if(posColon > 0){ // we have ip and port
                 presentationURL[posColon] = '\0';
-                free(m_dlnaServer.ip[srvNr]);
                 m_dlnaServer.presentationURL[srvNr] = x_ps_strdup(presentationURL + 7); // add presentationURL(IP)
                 m_dlnaServer.presentationPort[srvNr] = atoi(presentationURL + posColon + 1);
             } // only ip is given
             else{
-                free(m_dlnaServer.ip[srvNr]);
                 m_dlnaServer.presentationURL[srvNr] = x_ps_strdup(presentationURL + 7);
             }
             if(presentationURL){free(presentationURL); presentationURL = NULL;}
