@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 05.12.2023
+// Updated on: 06.12.2023
 /*
 //example
 DLNA dlna;
@@ -105,9 +105,9 @@ void DLNA_Client::parseDlnaServer(uint16_t len){
     *(p + idx2) = '\0';
     *(p + idx3) = '\0';
     *(p + idx4) = '\0';
-    for(int i = 0; i< m_dlnaServer.size; i++){
-        if(strcmp(m_dlnaServer.ip[i], p + idx1) == 0){log_i("sameIP"); return;}
-    }
+    // for(int i = 0; i< m_dlnaServer.size; i++){
+    //     if(strcmp(m_dlnaServer.ip[i], p + idx1) == 0){log_i("sameIP"); return;}
+    // }
     m_dlnaServer.ip.push_back(x_ps_strdup(p + idx1));
     m_dlnaServer.port.push_back(atoi(p + idx2 + 1));
     m_dlnaServer.location.push_back(x_ps_strdup(p + idx3 + 1));
@@ -447,6 +447,8 @@ bool DLNA_Client::browseResult(){
             uint16_t cNr = m_srvContent.size;
             makeContentPushBack();
             replacestr(m_chbuf, "&quot", "\"");
+            replacestr(m_chbuf, "&lt", "<");
+            replacestr(m_chbuf, "&gt", ">");
             a = indexOf(m_chbuf, "item id=", 0);
             if(a >= 0) {
                 a += 9;
@@ -461,10 +463,10 @@ bool DLNA_Client::browseResult(){
                 m_srvContent.parentId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
             }
 
-            a = indexOf(m_chbuf, "&gthttp", 0);
+            a = indexOf(m_chbuf, ">http", 0);
             if(a >= 0){
-                a += 3;
-                b = indexOf(m_chbuf, "&lt", a);
+                a += 1;
+                b = indexOf(m_chbuf, "<", a);
                 m_srvContent.itemURL[cNr] = x_ps_strndup(m_chbuf + a, b - a);
             }
 
@@ -475,14 +477,14 @@ bool DLNA_Client::browseResult(){
 
             a = indexOf(m_chbuf, "dc:title", 0);
             if(a >= 0){
-                a += 11;
+                a += 9;
                 b = indexOf(m_chbuf, "/dc:title", a);
-                b -= 3;
+                b -= 1;
                 m_srvContent.title[cNr] = x_ps_strndup(m_chbuf + a, b - a);
             }
 
-            a = indexOf(m_chbuf, "&ltres", 0);
-            b = indexOf(m_chbuf, "/res&gt", a);
+            a = indexOf(m_chbuf, "<res", 0);
+            b = indexOf(m_chbuf, "/res>", a);
             if(a > 0){
                 if(b > a) m_chbuf[b] = '\0';
                 a = indexOf(m_chbuf, "size=", a);

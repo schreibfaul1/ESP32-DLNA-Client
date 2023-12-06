@@ -1,5 +1,5 @@
 // Created on: 30.11.2023
-// Updated on: 05.12.2023
+// Updated on: 06.12.2023
 
 
 #pragma once
@@ -13,7 +13,7 @@
 #define SEEK_TIMEOUT              4000
 #define READ_TIMEOUT              2500
 #define CONNECT_TIMEOUT            200
-#define AVAIL_TIMEOUT              200
+#define AVAIL_TIMEOUT              500
 
 extern __attribute__((weak)) void dlna_info(const char *);
 extern __attribute__((weak)) void dlna_server(uint8_t serverId, const char* IP_addr, uint16_t port, const char* friendlyName, const char* controlURL);
@@ -70,7 +70,7 @@ public:
     int8_t listServer();
     dlnaServer_t getServer();
     srvContent_t getBrowseResult();
-    int8_t browseServer(uint8_t srvNr, const char* objectId, const uint16_t startingIndex = 0, const uint16_t maxCount = 100);
+    int8_t browseServer(uint8_t srvNr, const char* objectId, const uint16_t startingIndex = 0, const uint16_t maxCount = 50);
     const char* stringifyContent();
     const char* stringifyServer();
     uint8_t getState();
