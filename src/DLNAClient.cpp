@@ -47,25 +47,27 @@ bool DLNA_Client::seekServer(){
                             "MX: 3\r\n"\
                             "ST: urn:schemas-upnp-org:device:MediaServer:1\r\n\r\n";
 
-    ret = m_udp.beginMulticast(IPAddress(SSDP_MULTICAST_IP), SSDP_LOCAL_PORT);
-    if(!ret){
-        m_udp.stop(); log_e("error sending SSDP multicast packets");
-        return false;
-    }
-    ret = m_udp.beginPacket(IPAddress(SSDP_MULTICAST_IP), SSDP_MULTICAST_PORT);
-    if(!ret){
-        log_e("udp beginPacket error");
-        return false;
-    }
-    ret = m_udp.write((const uint8_t*)searchTX, sizeof(searchTX));
-    if(!ret){
-        log_e("udp write error");
-        return false;
-    }
-    ret = m_udp.endPacket();
-    if(!ret){
-        log_e("endPacket error");
-        return false;
+    {
+        ret = m_udp.beginMulticast(IPAddress(SSDP_MULTICAST_IP), SSDP_LOCAL_PORT);
+        if(!ret){
+            m_udp.stop(); log_e("error sending SSDP multicast packets");
+            return false;
+        }
+        ret = m_udp.beginPacket(IPAddress(SSDP_MULTICAST_IP), SSDP_MULTICAST_PORT);
+        if(!ret){
+            log_e("udp beginPacket error");
+            return false;
+        }
+        ret = m_udp.write((const uint8_t*)searchTX, sizeof(searchTX));
+        if(!ret){
+            log_e("udp write error");
+            return false;
+        }
+        ret = m_udp.endPacket();
+        if(!ret){
+            log_e("endPacket error");
+            return false;
+        }
     }
     m_state = SEEK_SERVER;
     m_timeStamp = millis();
@@ -574,6 +576,7 @@ bool DLNA_Client::srvPost(uint8_t srvNr, const char* objectId, const uint16_t st
     m_chbuf[strlen(m_chbuf)+ 1] = '\0';
 
     m_client.print(m_chbuf);
+
     uint32_t t = millis() + AVAIL_TIMEOUT;
     while(true){
         if(m_client.available()) break;
