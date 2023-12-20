@@ -590,7 +590,7 @@ bool DLNA_Client::srvPost(uint8_t srvNr, const char* objectId, const uint16_t st
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 int8_t DLNA_Client::browseServer(uint8_t srvNr, const char* objectId, const uint16_t startingIndex, const uint16_t maxCount){
-    if(!objectId) {log_e("wrong objectId"); return -1;} // no objectId given
+    if(!objectId) {log_e("objectId is NULL"); return -1;} // no objectId given
     if(srvNr >= m_dlnaServer.size) {log_e("server index too high"); return -2;} // srvNr too high
     if(m_state != IDLE) {log_e("state is not idle"); return -3;}
 
