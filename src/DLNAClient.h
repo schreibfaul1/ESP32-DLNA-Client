@@ -1,5 +1,5 @@
 // Created on: 30.11.2023
-// Updated on: 06.12.2023
+// Updated on: 04.01.2024
 
 
 #pragma once
@@ -18,14 +18,14 @@
 extern __attribute__((weak)) void dlna_info(const char *);
 extern __attribute__((weak)) void dlna_server(uint8_t serverId, const char* IP_addr, uint16_t port, const char* friendlyName, const char* controlURL);
 extern __attribute__((weak)) void dlna_seekReady(uint8_t numberOfServer);
-extern __attribute__((weak)) void dlna_browseResult(const char* objectId, const char* parentId, uint16_t childCount, const char* title, bool isAudio, uint32_t itemSize, const char* itemURL);
+extern __attribute__((weak)) void dlna_browseResult(const char* objectId, const char* parentId, uint16_t childCount, const char* title, bool isAudio, uint32_t itemSize, const char* duration, const char* itemURL);
 extern __attribute__((weak)) void dlna_browseReady(uint16_t numbertReturned, uint16_t totalMatches);
 
 class DLNA_Client{
 
 public:
     typedef struct _dlnaServer {
-        uint16_t size;
+        uint16_t size = 0;
         std::vector<char*>     ip;
         std::vector<uint16_t>  port;
         std::vector<char*>     location;
@@ -35,21 +35,22 @@ public:
         std::vector<char*>     presentationURL;
     }dlnaServer_t;
 private:
-    dlnaServer_t m_dlnaServer;
+    dlnaServer_t m_dlnaServer = {};
 
 public:
     typedef struct srvContent {
-        uint16_t size;
+        uint16_t size = 0;
         std::vector<char*>     objectId;
         std::vector<char*>     parentId;
         std::vector<uint8_t>   isAudio;
         std::vector<char*>     itemURL;
         std::vector<int32_t>   itemSize;
+        std::vector<char*>     duration;
         std::vector<char*>     title;
         std::vector<int16_t>   childCount;
     }srvContent_t;
 private:
-    srvContent_t m_srvContent;
+    srvContent_t m_srvContent = {};
 
 private:
     WiFiClient  m_client;
@@ -136,6 +137,7 @@ private:
         vector_clear_and_shrink(m_srvContent.itemURL);
         m_srvContent.itemSize.clear();
         m_srvContent.itemSize.shrink_to_fit();
+        vector_clear_and_shrink(m_srvContent.duration);
         vector_clear_and_shrink(m_srvContent.title);
         m_srvContent.childCount.clear();
         m_srvContent.childCount.shrink_to_fit();

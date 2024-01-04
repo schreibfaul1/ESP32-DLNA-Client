@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 06.12.2023
+// Updated on: 04.01.2024
 /*
 //example
 DLNA dlna;
@@ -32,6 +32,7 @@ DLNA_Client::DLNA_Client(){
 
 DLNA_Client::~DLNA_Client(){
     dlnaServer_clear_and_shrink();
+    srvContent_clear_and_shrink();
     vector_clear_and_shrink(m_content);
     if(m_chbuf){free(m_chbuf); m_chbuf = NULL;}
 }
@@ -107,9 +108,13 @@ void DLNA_Client::parseDlnaServer(uint16_t len){
     *(p + idx2) = '\0';
     *(p + idx3) = '\0';
     *(p + idx4) = '\0';
-    // for(int i = 0; i< m_dlnaServer.size; i++){
-    //     if(strcmp(m_dlnaServer.ip[i], p + idx1) == 0){log_i("sameIP"); return;}
-    // }
+    for(int i = 0; i< m_dlnaServer.size; i++){
+        if(strcmp(m_dlnaServer.ip[i], p + idx1) == 0){      // same IP
+            if(m_dlnaServer.port[i] == atoi(p + idx2 + 1)){ // same port
+                return;
+            }
+        }
+    }
     m_dlnaServer.ip.push_back(x_ps_strdup(p + idx1));
     m_dlnaServer.port.push_back(atoi(p + idx2 + 1));
     m_dlnaServer.location.push_back(x_ps_strdup(p + idx3 + 1));
@@ -366,14 +371,19 @@ bool DLNA_Client::getServerItems(uint8_t srvNr){
 bool DLNA_Client::browseResult(){
 
     auto makeContentPushBack = [&](){ // lambda, inner function
-        char* dummy = strdup("?");
+        char* dummy1 = strdup("?");
+        char* dummy2 = strdup("?");
+        char* dummy3 = strdup("?");
+        char* dummy4 = strdup("?");
+        char* dummy5 = strdup("?");
         DLNA_Client::m_srvContent.childCount.push_back(0);
         DLNA_Client::m_srvContent.isAudio.push_back(0);
         DLNA_Client::m_srvContent.itemSize.push_back(0);
-        DLNA_Client::m_srvContent.itemURL.push_back(dummy);
-        DLNA_Client::m_srvContent.objectId.push_back(dummy);
-        DLNA_Client::m_srvContent.parentId.push_back(dummy);
-        DLNA_Client::m_srvContent.title.push_back(dummy);
+        DLNA_Client::m_srvContent.itemURL.push_back(dummy1);
+        DLNA_Client::m_srvContent.duration.push_back(dummy2);
+        DLNA_Client::m_srvContent.objectId.push_back(dummy3);
+        DLNA_Client::m_srvContent.parentId.push_back(dummy4);
+        DLNA_Client::m_srvContent.title.push_back(dummy5);
         DLNA_Client::m_srvContent.size++;
     };
 
@@ -381,7 +391,7 @@ bool DLNA_Client::browseResult(){
     m_totalMatches = 0;
     bool item1 = false;
     bool item2 = false;
-    int a, b;
+    int a, b, c, d;
     srvContent_clear_and_shrink();
     for(int i = 0; i < m_content.size(); i++){
         uint16_t idx = 0;
@@ -394,6 +404,7 @@ bool DLNA_Client::browseResult(){
             strcat(m_chbuf, content);
         }
         if(startsWith(content, "/container")) {
+        //    log_i("%s", m_chbuf);
             item1 = false;
             uint16_t cNr = m_srvContent.size;
             makeContentPushBack();
@@ -434,6 +445,7 @@ bool DLNA_Client::browseResult(){
                                                     m_srvContent.title[cNr],
                                                     m_srvContent.isAudio[cNr],
                                                     m_srvContent.itemSize[cNr],
+                                                    m_srvContent.duration[cNr],
                                                     m_srvContent.itemURL[cNr]);
 
         }
@@ -449,10 +461,12 @@ bool DLNA_Client::browseResult(){
             replacestr(m_chbuf, "&quot", "\"");
             replacestr(m_chbuf, "&lt", "<");
             replacestr(m_chbuf, "&gt", ">");
+        //    log_i("%s", m_chbuf);
             a = indexOf(m_chbuf, "item id=", 0);
             if(a >= 0) {
                 a += 9;
                 b = indexOf(m_chbuf, "\"", a);
+                if(m_srvContent.objectId[cNr]) { free(m_srvContent.objectId[cNr]); m_srvContent.objectId[cNr] = NULL;}
                 m_srvContent.objectId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
             }
 
@@ -460,26 +474,20 @@ bool DLNA_Client::browseResult(){
             if(a >= 0){
                 a += 10;
                 b = indexOf(m_chbuf, "\"", a);
+                if(m_srvContent.parentId[cNr]) { free(m_srvContent.parentId[cNr]); m_srvContent.parentId[cNr] = NULL;}
                 m_srvContent.parentId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
-            }
-
-            a = indexOf(m_chbuf, ">http", 0);
-            if(a >= 0){
-                a += 1;
-                b = indexOf(m_chbuf, "<", a);
-                m_srvContent.itemURL[cNr] = x_ps_strndup(m_chbuf + a, b - a);
             }
 
             a = indexOf(m_chbuf, "object.item.audioItem", 0);
             if(a < 0) {m_srvContent.isAudio[cNr] = 0;}
             else      {m_srvContent.isAudio[cNr] = 1;}
 
-
             a = indexOf(m_chbuf, "dc:title", 0);
             if(a >= 0){
                 a += 9;
                 b = indexOf(m_chbuf, "/dc:title", a);
                 b -= 1;
+                if(m_srvContent.title[cNr]) { free(m_srvContent.title[cNr]); m_srvContent.title[cNr] = NULL;}
                 m_srvContent.title[cNr] = x_ps_strndup(m_chbuf + a, b - a);
             }
 
@@ -487,6 +495,25 @@ bool DLNA_Client::browseResult(){
             b = indexOf(m_chbuf, "/res>", a);
             if(a > 0){
                 if(b > a) m_chbuf[b] = '\0';
+
+                c = indexOf(m_chbuf, ">http", a);
+                if(c >= 0){
+                    c += 1;
+                    d = indexOf(m_chbuf, "<", c);
+                    if(m_srvContent.itemURL[cNr]) { free(m_srvContent.itemURL[cNr]); m_srvContent.itemURL[cNr] = NULL;}
+                    m_srvContent.itemURL[cNr] = x_ps_strndup(m_chbuf + c, d - c);
+                }
+
+                c = indexOf(m_chbuf, "duration=", a);
+                if(c >= 0){
+                    c += 10;
+                    d = indexOf(m_chbuf, "\"", c) - 4;
+                    if(d > c){
+                        if(m_srvContent.duration[cNr]) { free(m_srvContent.duration[cNr]); m_srvContent.duration[cNr] = NULL;}
+                        m_srvContent.duration[cNr] = x_ps_strndup(m_chbuf + c, d - c);
+                    }
+                }
+
                 a = indexOf(m_chbuf, "size=", a);
                 if(a > 0){
                     a += 6;
@@ -502,6 +529,7 @@ bool DLNA_Client::browseResult(){
                                                     m_srvContent.title[cNr],
                                                     m_srvContent.isAudio[cNr],
                                                     m_srvContent.itemSize[cNr],
+                                                    m_srvContent.duration[cNr],
                                                     m_srvContent.itemURL[cNr]);
         }
 
@@ -655,11 +683,11 @@ const char* DLNA_Client::stringifyContent() {
         if(m_srvContent.isAudio[i]) strcpy(isAudio, "true"); else strcpy(isAudio, "false");
         ltoa(m_srvContent.itemSize[i], itemSize, 10);
         JSONstrLength = strlen(childCount) + strlen(isAudio) + strlen(itemSize) + strlen(m_srvContent.itemURL[i])+
-                        strlen(m_srvContent.objectId[i]) + strlen(m_srvContent.parentId[i]) + strlen(m_srvContent.title[i]);
+                        strlen(m_srvContent.objectId[i]) + strlen(m_srvContent.parentId[i]) + strlen(m_srvContent.title[i]) + strlen(m_srvContent.duration[i]);
 
     //  [{"objectId":"1$4","parentId":"1","childCount":"5","title":"Bilder","isAudio":"false","itemSize":"342345","itemURL":"http://myPC/Pictues/myPicture.jpg"},{"objectId ...."}]
-    //  {"objectId":"","parentId":"","childCount":"","title":"","isAudio":"","itemSize":"","itemURL":""},   --> 97 chars
-        JSONstrLength += strlen(m_JSONstr) + 97 + 2;
+    //  {"objectId":"","parentId":"","childCount":"","title":"","isAudio":"","itemSize":"","dur:"","itemURL":""},   --> 105 chars
+        JSONstrLength += strlen(m_JSONstr) + 105 + 2;
 
         if(m_PSRAMfound) { m_JSONstr = (char*)ps_realloc(m_JSONstr, JSONstrLength); }
         else             { m_JSONstr = (char*)realloc(m_JSONstr, JSONstrLength); }
@@ -670,6 +698,7 @@ const char* DLNA_Client::stringifyContent() {
         strcat(m_JSONstr, "\",\"title\":\""); strcat(m_JSONstr, m_srvContent.title[i]);
         strcat(m_JSONstr, "\",\"isAudio\":\""); strcat(m_JSONstr, isAudio);
         strcat(m_JSONstr, "\",\"itemSize\":\""); strcat(m_JSONstr, itemSize);
+        strcat(m_JSONstr, "\",\"dur\":\""); strcat(m_JSONstr, m_srvContent.duration[i]);
         strcat(m_JSONstr, "\",\"itemURL\":\""); strcat(m_JSONstr, m_srvContent.itemURL[i]);
         strcat(m_JSONstr, "\"},");
     }

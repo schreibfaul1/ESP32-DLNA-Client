@@ -71,7 +71,7 @@ void dlna_seekReady(uint8_t numberOfServer){
     Serial.printf("%s\n\n", dlna.stringifyServer()); // and now stringify the found servers, make JSONstring:
 }
 
-void dlna_browseResult(const char* objectId, const char* parentId, uint16_t childCount, const char* title, bool isAudio, uint32_t itemSize, const char* itemURL){
+void dlna_browseResult(const char* objectId, const char* parentId, uint16_t childCount, const char* title, bool isAudio, uint32_t itemSize, const char* duration,  const char* itemURL){
     Serial.printf("objectId %s, parentId %s, childCount %i, title %s, isAudio %i, itemSize %i, itemURL %s\n", objectId, parentId, childCount, title, isAudio, itemSize, itemURL);
 }
 
