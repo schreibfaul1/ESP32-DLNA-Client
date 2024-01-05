@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 04.01.2024
+// Updated on: 05.01.2024
 /*
 //example
 DLNA dlna;
@@ -702,9 +702,9 @@ const char* DLNA_Client::stringifyContent() {
         strcat(m_JSONstr, "\",\"itemURL\":\""); strcat(m_JSONstr, m_srvContent.itemURL[i]);
         strcat(m_JSONstr, "\"},");
     }
-    m_JSONstr[JSONstrLength - 3] = ']';  // replace comma by square bracket close
-    m_JSONstr[JSONstrLength - 2] = '\0'; // and terminate
-
+    m_JSONstr[JSONstrLength - 2] = ']';  // replace comma by square bracket close
+    m_JSONstr[JSONstrLength - 1] = '\0'; // and terminate
+log_w("%s", m_JSONstr);
     return m_JSONstr;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
