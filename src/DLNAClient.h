@@ -1,5 +1,5 @@
 // Created on: 30.11.2023
-// Updated on: 04.01.2024
+// Updated on: 24.01.2024
 
 
 #pragma once
@@ -10,7 +10,7 @@
 #define SSDP_MULTICAST_IP         239, 255, 255, 250
 #define SSDP_LOCAL_PORT           8888
 #define SSDP_MULTICAST_PORT       1900
-#define SEEK_TIMEOUT              4000
+#define SEEK_TIMEOUT              6000
 #define READ_TIMEOUT              2500
 #define CONNECT_TIMEOUT            200
 #define AVAIL_TIMEOUT              500
