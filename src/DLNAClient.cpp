@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 05.01.2024
+// Updated on: 30.01.2024
 /*
 //example
 DLNA dlna;
@@ -459,6 +459,7 @@ bool DLNA_Client::browseResult(){
             uint16_t cNr = m_srvContent.size;
             makeContentPushBack();
             replacestr(m_chbuf, "&quot", "\"");
+            replacestr(m_chbuf, "&amp", "&");
             replacestr(m_chbuf, "&lt", "<");
             replacestr(m_chbuf, "&gt", ">");
         //    log_i("%s", m_chbuf);
