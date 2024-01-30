@@ -408,10 +408,10 @@ bool DLNA_Client::browseResult(){
             item1 = false;
             uint16_t cNr = m_srvContent.size;
             makeContentPushBack();
-            replacestr(m_chbuf, "&quot", "\"");
+            replacestr(m_chbuf, "&quot", "\\\"");
             replacestr(m_chbuf, "&ampamp", "&");   // ampersand
             replacestr(m_chbuf, "&ampapos", "'");  // apostrophe
-            replacestr(m_chbuf, "&ampquot", "\""); // quotation
+            replacestr(m_chbuf, "&ampquot", "\\\""); // quotation
 
             a = indexOf(m_chbuf, "container id=", 0);
             if(a >= 0) {
@@ -463,10 +463,10 @@ bool DLNA_Client::browseResult(){
             uint16_t cNr = m_srvContent.size;
             makeContentPushBack();
 
-            replacestr(m_chbuf, "&quot", "\"");
+            replacestr(m_chbuf, "&quot", "\\\"");
             replacestr(m_chbuf, "&ampamp", "&");   // ampersand
             replacestr(m_chbuf, "&ampapos", "'");  // apostrophe
-            replacestr(m_chbuf, "&ampquot", "\""); // quotation
+            replacestr(m_chbuf, "&ampquot", "\\\""); // quotation
             replacestr(m_chbuf, "&lt", "<");
             replacestr(m_chbuf, "&gt", ">");
 
