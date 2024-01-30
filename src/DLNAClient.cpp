@@ -712,7 +712,6 @@ const char* DLNA_Client::stringifyContent() {
     }
     m_JSONstr[JSONstrLength - 2] = ']';  // replace comma by square bracket close
     m_JSONstr[JSONstrLength - 1] = '\0'; // and terminate
-log_w("%s", m_JSONstr);
     return m_JSONstr;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
