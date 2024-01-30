@@ -462,7 +462,7 @@ bool DLNA_Client::browseResult(){
             item2 = false;
             uint16_t cNr = m_srvContent.size;
             makeContentPushBack();
-            log_i("%s", m_chbuf);
+
             replacestr(m_chbuf, "&quot", "\"");
             replacestr(m_chbuf, "&ampamp", "&");   // ampersand
             replacestr(m_chbuf, "&ampapos", "'");  // apostrophe
