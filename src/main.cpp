@@ -72,7 +72,7 @@ void dlna_seekReady(uint8_t numberOfServer){
 }
 
 void dlna_browseResult(const char* objectId, const char* parentId, uint16_t childCount, const char* title, bool isAudio, uint32_t itemSize, const char* duration, const char* itemURL){
-    Serial.printf("objectId %s, parentId %s, childCount %i, title %s, isAudio %i, itemSize %i, duration %s, itemURL %s\n", objectId, parentId, childCount, title, isAudio, itemSize, duration, itemURL);
+    Serial.printf("objectId %s, parentId %s, childCount %i, title %s, isAudio %i, itemSize %lu, duration %s, itemURL %s\n", objectId, parentId, childCount, title, isAudio, (long unsigned int)itemSize, duration, itemURL);
 }
 
 void dlna_browseReady(uint16_t numbertReturned, uint16_t totalMatches){
