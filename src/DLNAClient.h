@@ -1,5 +1,5 @@
 // Created on: 30.11.2023
-// Updated on: 19.02.2024
+// Updated on: 02.04.2024
 
 
 #pragma once
@@ -19,7 +19,7 @@ extern __attribute__((weak)) void dlna_info(const char *);
 extern __attribute__((weak)) void dlna_server(uint8_t serverId, const char* IP_addr, uint16_t port, const char* friendlyName, const char* controlURL);
 extern __attribute__((weak)) void dlna_seekReady(uint8_t numberOfServer);
 extern __attribute__((weak)) void dlna_browseResult(const char* objectId, const char* parentId, uint16_t childCount, const char* title, bool isAudio, uint32_t itemSize, const char* duration, const char* itemURL);
-extern __attribute__((weak)) void dlna_browseReady(uint16_t numbertReturned, uint16_t totalMatches);
+extern __attribute__((weak)) void dlna_browseReady(uint16_t numberReturned, uint16_t totalMatches);
 
 class DLNA_Client{
 

@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 30.01.2024
+// Updated on: 02.04.2024
 /*
 //example
 DLNA dlna;
@@ -397,7 +397,7 @@ bool DLNA_Client::browseResult(){
         uint16_t idx = 0;
         while(*(m_content[i] + idx) == 0x20) idx++;  // same as trim left
         char* content = m_content[i] + idx;
-    //    log_i("%s", content);
+        // log_i("%s", content);
         /*------C O N T A I N E R -------*/
         if(startsWith(content, "container id")) {item1 = true; memset(m_chbuf, 0, m_chbufSize);}
         if(item1){
@@ -408,16 +408,17 @@ bool DLNA_Client::browseResult(){
             item1 = false;
             uint16_t cNr = m_srvContent.size;
             makeContentPushBack();
-            replacestr(m_chbuf, "&quot", "\\\"");
+            replacestr(m_chbuf, "&quot", "\"");
             replacestr(m_chbuf, "&ampamp", "&");   // ampersand
             replacestr(m_chbuf, "&ampapos", "'");  // apostrophe
-            replacestr(m_chbuf, "&ampquot", "\\\""); // quotation
+            replacestr(m_chbuf, "&ampquot", "\""); // quotation
 
             a = indexOf(m_chbuf, "container id=", 0);
             if(a >= 0) {
                 a += 14;
                 b = indexOf(m_chbuf, "\"", a);
                 m_srvContent.objectId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
+                log_e("m_srvContent.objectId[cNr] %s", m_srvContent.objectId[cNr]);
             }
 
             a = indexOf(m_chbuf, "parentID=", 0);
@@ -558,7 +559,7 @@ bool DLNA_Client::browseResult(){
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 bool DLNA_Client::srvPost(uint8_t srvNr, const char* objectId, const uint16_t startingIndex, const uint16_t maxCount){
-
+log_w("srvNr %i, objectId %s, startingIndex %i, maxCount %i", srvNr, objectId, startingIndex, maxCount);
     bool ret;
     uint8_t cnt = 0;
 
