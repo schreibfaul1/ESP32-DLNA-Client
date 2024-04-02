@@ -418,7 +418,6 @@ bool DLNA_Client::browseResult(){
                 a += 14;
                 b = indexOf(m_chbuf, "\"", a);
                 m_srvContent.objectId[cNr] = x_ps_strndup(m_chbuf + a, b - a);
-                log_e("m_srvContent.objectId[cNr] %s", m_srvContent.objectId[cNr]);
             }
 
             a = indexOf(m_chbuf, "parentID=", 0);
@@ -464,10 +463,10 @@ bool DLNA_Client::browseResult(){
             uint16_t cNr = m_srvContent.size;
             makeContentPushBack();
 
-            replacestr(m_chbuf, "&quot", "\\\"");
+            replacestr(m_chbuf, "&quot", "\"");
             replacestr(m_chbuf, "&ampamp", "&");   // ampersand
             replacestr(m_chbuf, "&ampapos", "'");  // apostrophe
-            replacestr(m_chbuf, "&ampquot", "\\\""); // quotation
+            replacestr(m_chbuf, "&ampquot", "\""); // quotation
             replacestr(m_chbuf, "&lt", "<");
             replacestr(m_chbuf, "&gt", ">");
 
@@ -559,7 +558,7 @@ bool DLNA_Client::browseResult(){
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 bool DLNA_Client::srvPost(uint8_t srvNr, const char* objectId, const uint16_t startingIndex, const uint16_t maxCount){
-log_w("srvNr %i, objectId %s, startingIndex %i, maxCount %i", srvNr, objectId, startingIndex, maxCount);
+
     bool ret;
     uint8_t cnt = 0;
 
