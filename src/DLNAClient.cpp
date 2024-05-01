@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 02.04.2024
+// Updated on: 01.05.2024
 /*
 //example
 DLNA dlna;
@@ -25,8 +25,8 @@ DLNA_Client::DLNA_Client(){
     }
     else {
         m_PSRAMfound = true;
-        m_chbuf = (char*)ps_malloc(4096);
-        m_chbufSize = 4096;
+        m_chbuf = (char*)ps_malloc(4 * 4096);
+        m_chbufSize = 4 *4096;
     }
 }
 
@@ -237,6 +237,7 @@ bool DLNA_Client::readContent(){
     uint32_t idx = 0;
     uint8_t lastChar = 0;
     uint8_t b = 0;
+    bool f_overflow = false;
     vector_clear_and_shrink(m_content);
 
     while(true){  // outer while
@@ -271,16 +272,16 @@ bool DLNA_Client::readContent(){
             if(b < 0x20) continue;
             m_chbuf[pos] = b;
             pos++;
-            if(pos == m_chbufSize -1) {
+            if(pos >= m_chbufSize -1) {
+                m_chbuf[pos] = '\0';
+                f_overflow = true;
                 pos--;
                 continue;
             }
-            if(pos == m_chbufSize - 2) {
-                m_chbuf[pos] = '\0';
-                log_i("line overflow");
-            }
         }
-    //    log_i("%s %i", m_chbuf, m_content.size());
+        if(f_overflow)log_e("line overflow");
+
+        log_i("%s %i", m_chbuf, m_content.size());
         m_content.push_back(x_ps_strdup(m_chbuf));
         if(!m_chunked &&  idx == m_contentlength) break;
         if(!m_client.available()){
