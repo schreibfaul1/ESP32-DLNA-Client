@@ -281,7 +281,7 @@ bool DLNA_Client::readContent(){
         }
         if(f_overflow)log_e("line overflow");
 
-        log_i("%s %i", m_chbuf, m_content.size());
+        // log_i("%s %i", m_chbuf, m_content.size());
         m_content.push_back(x_ps_strdup(m_chbuf));
         if(!m_chunked &&  idx == m_contentlength) break;
         if(!m_client.available()){
