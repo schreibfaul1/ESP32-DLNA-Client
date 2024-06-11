@@ -5,8 +5,8 @@
 DLNA_Client dlna;
 
 WiFiMulti wifiMulti;
-String ssid =     "Wolles-FRITZBOX";
-String password = "40441061073895958449";
+String ssid =     "xxxxx";
+String password = "xxxxx";
 
 bool f_seek   = false;
 bool f_browse = false;
