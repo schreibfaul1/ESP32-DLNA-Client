@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 01.05.2024
+// Updated on: 29.10.2024
 /*
 //example
 DLNA dlna;
@@ -19,15 +19,9 @@ void loop(){
 DLNA_Client::DLNA_Client(){
     m_state = IDLE;
     m_chunked = false;
-    if(!psramInit()) {
-        m_chbuf = (char*)malloc(512);
-        m_chbufSize = 512;
-    }
-    else {
-        m_PSRAMfound = true;
-        m_chbuf = (char*)ps_malloc(4 * 4096);
-        m_chbufSize = 4 *4096;
-    }
+
+    m_chbuf = (char*)malloc(512);
+    m_chbufSize = 512;
 }
 
 DLNA_Client::~DLNA_Client(){
@@ -39,6 +33,18 @@ DLNA_Client::~DLNA_Client(){
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 bool DLNA_Client::seekServer(){
     if(WiFi.status() != WL_CONNECTED) return false; // guard
+
+    if(m_chbuf) {free(m_chbuf); m_chbuf = NULL;}
+    if(!psramInit()) {
+        m_chbuf = (char*)malloc(512);
+        m_chbufSize = 512;
+    }
+    else {
+        m_PSRAMfound = true;
+        m_chbuf = (char*)ps_malloc(4 * 4096);
+        m_chbufSize = 4 *4096;
+    }
+
     dlnaServer_clear_and_shrink();
     m_dlnaServer.size = 0;
     uint8_t ret = 0;
