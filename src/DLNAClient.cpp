@@ -19,7 +19,7 @@ void loop(){
 DLNA_Client::DLNA_Client(){
     m_state = IDLE;
     m_chunked = false;
-
+    m_PSRAMfound = psramInit();
     m_chbuf = (char*)malloc(512);
     m_chbufSize = 512;
 }
@@ -35,12 +35,11 @@ bool DLNA_Client::seekServer(){
     if(WiFi.status() != WL_CONNECTED) return false; // guard
 
     if(m_chbuf) {free(m_chbuf); m_chbuf = NULL;}
-    if(!psramInit()) {
+    if(m_PSRAMfound == false) {
         m_chbuf = (char*)malloc(512);
         m_chbufSize = 512;
     }
     else {
-        m_PSRAMfound = true;
         m_chbuf = (char*)ps_malloc(4 * 4096);
         m_chbufSize = 4 *4096;
     }
