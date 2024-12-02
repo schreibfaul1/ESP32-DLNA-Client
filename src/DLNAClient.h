@@ -77,10 +77,8 @@ public:
     uint8_t getState();
     void loop();
 
-
-private:
     enum {IDLE, SEEK_SERVER, GET_SERVER_ITEMS, READ_HTTP_HEADER, BROWSE_SERVER};
-
+private:
     void parseDlnaServer(uint16_t len);
     bool getServerItems(uint8_t srvNr);
     bool browseResult();
