@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 14.11.2024
+// Updated on: 02.12.2024
 /*
 //example
 DLNA dlna;
@@ -286,7 +286,7 @@ bool DLNA_Client::readContent(){
         }
         if(f_overflow)log_e("line overflow");
 
-        // log_i("%s %i", m_chbuf, m_content.size());
+//        log_w("%s %i", m_chbuf, m_content.size());
         m_content.push_back(x_ps_strdup(m_chbuf));
         if(!m_chunked &&  idx == m_contentlength) break;
         if(!m_client.available()){
@@ -370,6 +370,8 @@ bool DLNA_Client::getServerItems(uint8_t srvNr){
         idx = indexOf(m_dlnaServer.controlURL[srvNr], "/", 7);
         memcpy(m_dlnaServer.controlURL[srvNr], m_dlnaServer.controlURL[srvNr] + idx + 1, strlen(m_dlnaServer.controlURL[srvNr]) + idx + 2);
     }
+    if(strcmp(m_dlnaServer.friendlyName[srvNr], "?") == 0){log_e("friendlyName %s", m_dlnaServer.friendlyName[srvNr]); return false;}
+    if(strcmp(m_dlnaServer.controlURL[srvNr], "?") == 0){log_e("controlURL %s", m_dlnaServer.controlURL[srvNr]); return false;}
     if(dlna_server) dlna_server(srvNr, m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr], m_dlnaServer.friendlyName[srvNr],m_dlnaServer.controlURL[srvNr]);
     return true;
 }
@@ -727,6 +729,7 @@ uint8_t DLNA_Client::getState(){
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void DLNA_Client::loop(){
     static uint8_t cnt = 0;
+    static uint8_t fail = 0;
     bool res;
     switch(m_state){
         case IDLE:
@@ -738,6 +741,7 @@ void DLNA_Client::loop(){
                     parseDlnaServer(len); // registers all media servers that respond within the time until the timeout
                 }
                 cnt = 0;
+                fail = 0;
             }
             else{
                 m_udp.stop();
@@ -747,13 +751,15 @@ void DLNA_Client::loop(){
         case GET_SERVER_ITEMS:
             if(cnt < m_dlnaServer.size){
                 res = srvGet(cnt);
-                if(!res){log_e("error in srvGet"); m_state = IDLE; break;}
+                if(!res){/* log_e("error in srvGet"); m_state = IDLE; */ fail++; break;}
                 res = readHttpHeader();
-                if(!res){log_e("error in readHttpHeader"); m_state = IDLE; break;}
+                if(!res){/* log_e("error in readHttpHeader");  m_state = IDLE;*/ fail++; break;}
                 res = readContent();
-                if(!res){log_e("error in readContent"); m_state = IDLE; break;}
-                getServerItems(cnt);
-                cnt++;
+                if(!res){/* log_e("error in readContent"); m_state = IDLE; */ fail++; break;}
+                res = getServerItems(cnt);
+                if(res) cnt++;
+                else fail++;
+                if(fail == 3) {fail = 0; log_e("no response from svr [%i], cnt"); cnt++; }
                 break;
             }
             cnt = 0;
