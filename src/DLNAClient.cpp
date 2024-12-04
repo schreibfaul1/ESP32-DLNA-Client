@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 02.12.2024
+// Updated on: 04.12.2024
 /*
 //example
 DLNA dlna;
@@ -442,13 +442,13 @@ bool DLNA_Client::browseResult(){
                 char tmp[10] = {0}; memcpy(tmp, m_chbuf + a, b - a);
                 m_srvContent.childCount[cNr] = atoi(tmp);
             }
-
             a = indexOf(m_chbuf, "dc:title", 0);
             if(a >= 0) {
                 a += 11;
                 b = indexOf(m_chbuf, "/dc:title", a);
                 b -= 3;
                 m_srvContent.title[cNr] = x_ps_strndup(m_chbuf + a, b - a);
+                if(strlen(m_srvContent.title[cNr]) == 0) m_srvContent.title[cNr] = x_ps_strndup("Unknown\0", 8);
             }
 
             if(dlna_browseResult) dlna_browseResult(m_srvContent.objectId[cNr],
