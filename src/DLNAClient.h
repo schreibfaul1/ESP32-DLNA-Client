@@ -1,5 +1,5 @@
 // Created on: 30.11.2023
-// Updated on: 04.12.2024
+// Updated on: 06.12.2024
 
 
 #pragma once
@@ -206,17 +206,17 @@ private:
         return ps_str;
     }
     //-------------------------------------------------------------------------------------------------------
-    char* x_ps_strndup(const char* str, uint16_t len){
-        if(!str){log_e("given str is NULL");}
-        if(len > strlen(str)) len = strlen(str);
-        char* ps_str = NULL;
-        if(m_PSRAMfound){ps_str = (char*) ps_malloc(len + 1);}
-        else            {ps_str = (char*) malloc(len + 1);}
-        if(!ps_str){log_e("oom");}
-        strncpy(ps_str, str, len);
-        ps_str[len] = '\0';
-        return ps_str;
-    }
+char* x_ps_strndup(const char* str, uint16_t len) {
+    if (!str) {  log_e("given str is NULL");  return NULL; }
+    size_t str_len = strlen(str);
+    if (len > str_len) len = str_len;
+    char* ps_str = NULL;
+    if (m_PSRAMfound) { ps_str = (char*)ps_malloc(len + 1); }
+    else              { ps_str = (char*)malloc(len + 1); }
+    if (!ps_str) { log_e("oom");   return NULL; }
+    strlcpy(ps_str, str, len + 1); // len+1 guarantees zero termination (ps_str + '\0')
+    return ps_str;
+}
     //-------------------------------------------------------------------------------------------------------
 
 };
