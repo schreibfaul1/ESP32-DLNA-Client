@@ -1,5 +1,5 @@
 // Created on: 30.11.2023
-// Updated on: 06.12.2024
+// Updated on: 07.12.2024
 
 
 #pragma once
@@ -75,6 +75,8 @@ public:
     const char* stringifyContent();
     const char* stringifyServer();
     uint8_t getState();
+    int16_t getTotalMatches(){if(m_state == IDLE) return m_totalMatches;    else return -1;}
+    int8_t  getNrOfServers() {if(m_state == IDLE) return m_dlnaServer.size; else return -1;}
     void loop();
 
     enum {IDLE, SEEK_SERVER, GET_SERVER_ITEMS, READ_HTTP_HEADER, BROWSE_SERVER};
