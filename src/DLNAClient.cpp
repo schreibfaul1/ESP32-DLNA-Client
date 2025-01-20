@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 06.12.2024
+// Updated on: 20.01.2024
 /*
 //example
 DLNA dlna;
@@ -120,6 +120,7 @@ void DLNA_Client::parseDlnaServer(uint16_t len){
             }
         }
     }
+    if(strcmp(p + idx1, "0.0.0.0") == 0) {log_e("invalid IP address found %s", p + idx1); return;}
     m_dlnaServer.ip.push_back(x_ps_strdup(p + idx1));
     m_dlnaServer.port.push_back(atoi(p + idx2 + 1));
     m_dlnaServer.location.push_back(x_ps_strdup(p + idx3 + 1));
