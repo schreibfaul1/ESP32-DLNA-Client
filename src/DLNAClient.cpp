@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 20.01.2024
+// Updated on: 12.02.2025
 /*
 //example
 DLNA dlna;
@@ -751,6 +751,7 @@ void DLNA_Client::loop(){
             break;
         case GET_SERVER_ITEMS:
             if(cnt < m_dlnaServer.size){
+                if(fail == 3) {fail = 0; log_e("no response from svr [%i], cnt"); cnt++; break;}
                 res = srvGet(cnt);
                 if(!res){/* log_e("error in srvGet"); m_state = IDLE; */ fail++; break;}
                 res = readHttpHeader();
@@ -758,9 +759,8 @@ void DLNA_Client::loop(){
                 res = readContent();
                 if(!res){/* log_e("error in readContent"); m_state = IDLE; */ fail++; break;}
                 res = getServerItems(cnt);
-                if(res) cnt++;
-                else fail++;
-                if(fail == 3) {fail = 0; log_e("no response from svr [%i], cnt"); cnt++; }
+                if(!res){/* log_e("error in readContent"); m_state = IDLE; */ fail++; break;}
+                cnt++;
                 break;
             }
             cnt = 0;
