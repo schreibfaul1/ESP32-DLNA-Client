@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 12.02.2025
+// Updated on: 05.04.2025
 /*
 //example
 DLNA dlna;
@@ -133,16 +133,18 @@ void DLNA_Client::parseDlnaServer(uint16_t len){
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 bool DLNA_Client::srvGet(uint8_t srvNr){
-    bool ret;
+    bool ret = false;
     m_client.stop();
-    m_client.setTimeout(4000);
+    m_client.setTimeout(6000);
+    uint32_t t = millis();
     ret = m_client.connect(m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
     if(!ret){
         m_client.stop();
-        log_e("The server %s:%d is not responding", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
+        sprintf(m_chbuf, "The server %s:%d did not answer within %lums", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr], millis() - t);
+        if(dlna_info) dlna_info(m_chbuf);
         return false;
     }
-    uint32_t t = millis() + CONNECT_TIMEOUT;
+    t = millis() + CONNECT_TIMEOUT;
     while(true){
         if(m_client.connected()) break;
         if(t < millis()){
@@ -572,10 +574,11 @@ bool DLNA_Client::srvPost(uint8_t srvNr, const char* objectId, const uint16_t st
     uint8_t cnt = 0;
 
     m_client.stop();
+    uint32_t t = millis();
     ret = m_client.connect(m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
 
     if(!ret){
-        sprintf(m_chbuf, "The server %s:%d is not responding", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
+        sprintf(m_chbuf, "The server %s:%d is not responding after %lums", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr], millis() - t);
         if(dlna_info) dlna_info(m_chbuf);
         return false;
     }
@@ -622,7 +625,7 @@ bool DLNA_Client::srvPost(uint8_t srvNr, const char* objectId, const uint16_t st
 
     m_client.print(m_chbuf);
 
-    uint32_t t = millis() + AVAIL_TIMEOUT;
+    t = millis() + AVAIL_TIMEOUT;
     while(true){
         if(m_client.available()) break;
         if(t < millis()){
