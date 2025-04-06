@@ -13,7 +13,7 @@
 #define SEEK_TIMEOUT              6000
 #define READ_TIMEOUT              2500
 #define CONNECT_TIMEOUT            200
-#define AVAIL_TIMEOUT             1000
+#define AVAIL_TIMEOUT             2000
 
 extern __attribute__((weak)) void dlna_info(const char *);
 extern __attribute__((weak)) void dlna_server(uint8_t serverId, const char* IP_addr, uint16_t port, const char* friendlyName, const char* controlURL);

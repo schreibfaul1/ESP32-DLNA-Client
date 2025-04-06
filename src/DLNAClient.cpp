@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 05.04.2025
+// Updated on: 06.04.2025
 /*
 //example
 DLNA dlna;
@@ -575,9 +575,11 @@ bool DLNA_Client::srvPost(uint8_t srvNr, const char* objectId, const uint16_t st
 
     m_client.stop();
     uint32_t t = millis();
+    m_client.setTimeout(6000);
     ret = m_client.connect(m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
 
     if(!ret){
+        m_client.stop();
         sprintf(m_chbuf, "The server %s:%d is not responding after %lums", m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr], millis() - t);
         if(dlna_info) dlna_info(m_chbuf);
         return false;
