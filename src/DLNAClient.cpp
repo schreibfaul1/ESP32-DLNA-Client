@@ -77,7 +77,6 @@ bool DLNA_Client::seekServer(){
     }
     m_state = SEEK_SERVER;
     m_timeStamp = millis();
-    m_timeout = SEEK_TIMEOUT;
     return true;
 }
 
@@ -135,7 +134,7 @@ void DLNA_Client::parseDlnaServer(uint16_t len){
 bool DLNA_Client::srvGet(uint8_t srvNr){
     bool ret = false;
     m_client.stop();
-    m_client.setTimeout(6000);
+    m_client.setTimeout(CONNECT_TIMEOUT);
     uint32_t t = millis();
     ret = m_client.connect(m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
     if(!ret){
@@ -144,7 +143,7 @@ bool DLNA_Client::srvGet(uint8_t srvNr){
         if(dlna_info) dlna_info(m_chbuf);
         return false;
     }
-    t = millis() + CONNECT_TIMEOUT;
+    t = millis() + 250;
     while(true){
         if(m_client.connected()) break;
         if(t < millis()){
@@ -241,7 +240,6 @@ error:
 bool DLNA_Client::readContent(){
 
     m_timeStamp  = millis();
-    m_timeout    = 2500; // ms
     uint32_t idx = 0;
     uint8_t lastChar = 0;
     uint8_t b = 0;
@@ -250,7 +248,7 @@ bool DLNA_Client::readContent(){
 
     while(true){  // outer while
         uint16_t pos = 0;
-        if((m_timeStamp + m_timeout) < millis()) {
+        if((m_timeStamp + READ_TIMEOUT) < millis()) {
             if(dlna_info) dlna_info("timeout in readContent");
             goto error;
         }
@@ -373,8 +371,8 @@ bool DLNA_Client::getServerItems(uint8_t srvNr){
         idx = indexOf(m_dlnaServer.controlURL[srvNr], "/", 7);
         memcpy(m_dlnaServer.controlURL[srvNr], m_dlnaServer.controlURL[srvNr] + idx + 1, strlen(m_dlnaServer.controlURL[srvNr]) + idx + 2);
     }
-    if(strcmp(m_dlnaServer.friendlyName[srvNr], "?") == 0){log_e("friendlyName %s", m_dlnaServer.friendlyName[srvNr]); return false;}
-    if(strcmp(m_dlnaServer.controlURL[srvNr], "?") == 0){log_e("controlURL %s", m_dlnaServer.controlURL[srvNr]); return false;}
+    if(strcmp(m_dlnaServer.friendlyName[srvNr], "?") == 0){log_e("friendlyName %s, [%i]", m_dlnaServer.friendlyName[srvNr], srvNr); return false;}
+    if(strcmp(m_dlnaServer.controlURL[srvNr], "?") == 0){log_e("controlURL %s, [%i]", m_dlnaServer.controlURL[srvNr], srvNr); return false;}
     if(dlna_server) dlna_server(srvNr, m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr], m_dlnaServer.friendlyName[srvNr],m_dlnaServer.controlURL[srvNr]);
     return true;
 }
@@ -575,7 +573,7 @@ bool DLNA_Client::srvPost(uint8_t srvNr, const char* objectId, const uint16_t st
 
     m_client.stop();
     uint32_t t = millis();
-    m_client.setTimeout(6000);
+    m_client.setTimeout(CONNECT_TIMEOUT);
     ret = m_client.connect(m_dlnaServer.ip[srvNr], m_dlnaServer.port[srvNr]);
 
     if(!ret){
@@ -741,7 +739,7 @@ void DLNA_Client::loop(){
         case IDLE:
             break;
         case SEEK_SERVER:
-            if(m_timeStamp + m_timeout > millis()){
+            if(m_timeStamp + SEEK_TIMEOUT > millis()){
                 size_t len = m_udp.parsePacket();
                 if(len){
                     parseDlnaServer(len); // registers all media servers that respond within the time until the timeout

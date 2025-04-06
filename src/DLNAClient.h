@@ -12,7 +12,7 @@
 #define SSDP_MULTICAST_PORT       1900
 #define SEEK_TIMEOUT              6000
 #define READ_TIMEOUT              2500
-#define CONNECT_TIMEOUT            200
+#define CONNECT_TIMEOUT           6000
 #define AVAIL_TIMEOUT             2000
 
 extern __attribute__((weak)) void dlna_info(const char *);
@@ -57,7 +57,6 @@ private:
     WiFiUDP     m_udp;
     uint8_t     m_state = IDLE;
     uint32_t    m_timeStamp = 0;
-    uint16_t    m_timeout = 0;
     uint16_t    m_numberReturned = 0;
     uint16_t    m_totalMatches = 0;
     char*       m_JSONstr = NULL;
