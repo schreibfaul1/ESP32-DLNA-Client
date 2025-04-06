@@ -1,5 +1,5 @@
 // Created on: 30.11.2023
-// Updated on: 20.01.2024
+// Updated on: 06.04.2025
 
 
 #pragma once
@@ -10,7 +10,7 @@
 #define SSDP_MULTICAST_IP         239, 255, 255, 250
 #define SSDP_LOCAL_PORT           8888
 #define SSDP_MULTICAST_PORT       1900
-#define SEEK_TIMEOUT              6000
+#define SEEK_TIMEOUT              8000
 #define READ_TIMEOUT              2500
 #define CONNECT_TIMEOUT           6000
 #define AVAIL_TIMEOUT             2000
@@ -101,7 +101,7 @@ private:
     uint16_t    m_startingIndex = 0;
     uint16_t    m_maxCount = 100;
 
-    //-------------------------------------------------------------------------------------------------------
+    //——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
     void vector_clear_and_shrink(std::vector<char*>&vec){
         uint size = vec.size();
         for (int32_t i = 0; i < size; i++) {
@@ -113,7 +113,7 @@ private:
         vec.clear();
         vec.shrink_to_fit();
     }
-    //-------------------------------------------------------------------------------------------------------
+    //——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
     void dlnaServer_clear_and_shrink(){
         m_dlnaServer.size = 0;
         vector_clear_and_shrink(m_dlnaServer.ip);
@@ -126,7 +126,7 @@ private:
         m_dlnaServer.presentationPort.shrink_to_fit();
         vector_clear_and_shrink(m_dlnaServer.presentationURL);
     }
-    //-------------------------------------------------------------------------------------------------------
+    //——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
     void srvContent_clear_and_shrink(){
         m_srvContent.size = 0;
         vector_clear_and_shrink(m_srvContent.objectId);
@@ -141,7 +141,7 @@ private:
         m_srvContent.childCount.clear();
         m_srvContent.childCount.shrink_to_fit();
     }
-    //-------------------------------------------------------------------------------------------------------
+    //——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
     int32_t indexOf(const char* haystack, const char* needle, int32_t startIndex) {
         const char* p = haystack;
         for(; startIndex > 0; startIndex--)
@@ -150,14 +150,14 @@ private:
         if(pos == nullptr) return -1;
         return pos - haystack;
     }
-    //-------------------------------------------------------------------------------------------------------
+    //——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
     bool startsWith(const char *base, const char *searchString) {
         char c;
         while((c = *searchString++) != '\0')
             if(c != *base++) return false;
         return true;
     }
-    //-------------------------------------------------------------------------------------------------------
+    //——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
     bool endsWith(const char *base, const char *searchString) {
         int32_t slen = strlen(searchString);
         if(slen == 0) return false;
@@ -166,7 +166,7 @@ private:
         if(p < base) return false;
         return (strncmp(p, searchString, slen) == 0);
     }
-    //-------------------------------------------------------------------------------------------------------
+    //——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
     int replacestr(char *line, const char *search, const char *replace){  /* returns number of strings replaced.*/
        int count;
        char *sp; // start of pattern
@@ -194,7 +194,16 @@ private:
         count += replacestr(sp + rLen, search, replace);
         return(count);
     }
-    //-------------------------------------------------------------------------------------------------------
+    //——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+    inline char* x_ps_malloc(uint16_t len) {
+        char* ps_str = NULL;
+        if(psramFound()){ps_str = (char*) ps_malloc(len);}
+        else             {ps_str = (char*)    malloc(len);}
+        if(!ps_str){log_e("oom");}
+        ps_str[0] = '\0';
+        return ps_str;
+    }
+    //——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
     char* x_ps_strdup(const char* str){
         if(!str){log_e("given str is NULL");}
         char* ps_str = NULL;
@@ -206,18 +215,18 @@ private:
         ps_str[len] = '\0';
         return ps_str;
     }
-    //-------------------------------------------------------------------------------------------------------
-char* x_ps_strndup(const char* str, uint16_t len) {
-    if (!str) {  log_e("given str is NULL");  return NULL; }
-    size_t str_len = strlen(str);
-    if (len > str_len) len = str_len;
-    char* ps_str = NULL;
-    if (m_PSRAMfound) { ps_str = (char*)ps_malloc(len + 1); }
-    else              { ps_str = (char*)malloc(len + 1); }
-    if (!ps_str) { log_e("oom");   return NULL; }
-    strlcpy(ps_str, str, len + 1); // len+1 guarantees zero termination (ps_str + '\0')
-    return ps_str;
-}
-    //-------------------------------------------------------------------------------------------------------
+    //——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+    char* x_ps_strndup(const char* str, uint16_t len) {
+        if (!str) {  log_e("given str is NULL");  return NULL; }
+        size_t str_len = strlen(str);
+        if (len > str_len) len = str_len;
+        char* ps_str = NULL;
+        if (m_PSRAMfound) { ps_str = (char*)ps_malloc(len + 1); }
+        else              { ps_str = (char*)malloc(len + 1); }
+        if (!ps_str) { log_e("oom");   return NULL; }
+        strlcpy(ps_str, str, len + 1); // len+1 guarantees zero termination (ps_str + '\0')
+        return ps_str;
+    }
+    //——————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
 
 };
