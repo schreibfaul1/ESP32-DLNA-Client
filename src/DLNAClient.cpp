@@ -175,7 +175,7 @@ bool DLNA_Client::readHttpHeader(){
 
     bool ct_seen = false;
     m_timeStamp  = millis();
-    uint16_t rhlSize = 512;
+    uint16_t rhlSize = 1024;
     char* rhl = x_ps_malloc(rhlSize); // response header line
     while(true){  // outer while
         uint16_t pos = 0;
@@ -259,6 +259,7 @@ bool DLNA_Client::readContent(){
 
     while(true){  // outer while
         uint16_t pos = 0;
+        uint8_t cnt = 0;
         if((m_timeStamp + READ_TIMEOUT) < millis()) {
             sprintf(m_chbuf, "timeout in readContent [%s:%d]", __FILENAME__, __LINE__);
             if(dlna_info) dlna_info(m_chbuf);
@@ -295,6 +296,11 @@ bool DLNA_Client::readContent(){
                 f_overflow = true;
                 pos--;
                 continue;
+            }
+            while(!m_client.available()){
+                vTaskDelay(10);
+                cnt++;
+                if(cnt == 100){sprintf(m_chbuf, "timeout in readContent [%s:%d]", __FILENAME__, __LINE__); break;}
             }
         }
         if(f_overflow)log_e("line overflow");
