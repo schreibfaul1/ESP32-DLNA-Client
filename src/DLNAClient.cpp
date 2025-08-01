@@ -1,7 +1,7 @@
 #include "DLNAClient.h"
 
 // Created on: 30.11.2023
-// Updated on: 06.04.2025
+// Updated on: 01.08.2025
 /*
 //example
 DLNA dlna;
@@ -286,7 +286,7 @@ bool DLNA_Client::readContent(){
                 m_chbuf[pos] = '\0';
                 break; // simulate new line
             }
-            if(b == '\r') m_chbuf[pos] = 0;
+            if(b == '\r') m_chbuf[pos] = '\0';
             if(b < 0x20) continue;
             m_chbuf[pos] = b;
             pos++;
@@ -303,9 +303,10 @@ bool DLNA_Client::readContent(){
         m_content.push_back(x_ps_strdup(m_chbuf));
         if(!m_chunked &&  idx == m_contentlength) break;
         if(!m_client.available()){
-            if(m_chunked == true) break; // ok
-            if(m_contentlength)   break; // ok
-            goto error; // not ok
+            vTaskDelay(10);
+               if(m_chunked == true) break; // ok
+        //    if(m_contentlength)   break; // ok
+        //    goto error; // not ok
         }
         m_timeStamp  = millis();
     }
